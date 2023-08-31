@@ -17,15 +17,13 @@ def get_openai_key():
 
 openai.api_key = get_openai_key()
 
-prompt = '''
+sys_msg = '''
 As a software developer assistant, your task is to write commit messages based on the given code.
 Follow these guidelines:
 1. A commit message should include a title and multiple body lines.
 2. Adhere to best practices, such as keeping titles under 50 characters and limiting body lines to under 72 characters.
-3. Utilize the diff output to create the summary.
+3. Utilize the diff output from user to create the summary
 4. Diff output will use json string, it's an array and each item has 3 fields: file、added and removed.
-5. Diff output is below
-{}
 '''
 
 
@@ -37,8 +35,13 @@ if __name__ == '__main__':
         print("noting need to commit")
         sys.exit()
 
-    response = openai.Completion.create(
+    completion = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
-        prompt=prompt.format(json.dumps(diff_output))
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": json.dumps(diff_output)}
+        ]
     )
-    print(response)
+
+    print(completion.choices[0].message)
+    print(completion)
