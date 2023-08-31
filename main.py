@@ -23,18 +23,15 @@ Follow these guidelines:
 1. A commit message should include a title and multiple body lines.
 2. Adhere to best practices, such as keeping titles under 50 characters and limiting body lines to under 72 characters.
 3. Utilize the diff output to create the summary.
-4. Diff output will use json string and has 2 fields: filename、diff.
-5. Diff output will included in <>
-output: <{}!>
+4. Diff output will use json string, it's an array and each item has 3 fields: file、added and removed.
+5. Diff output is below
+{}
 '''
 
 
-def get_git_diff():
-    git_diff()
-
 
 if __name__ == '__main__':
-    diff_output = get_git_diff()
+    diff_output = git_diff()
     print(json.dumps(diff_output))
     if len(diff_output) == 0:
         print("noting need to commit")
