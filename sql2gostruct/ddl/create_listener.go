@@ -53,5 +53,8 @@ func (cdl CreateDDLListener) EnterComment_defi(c *parser.Comment_defiContext) {
 	l := len(cdl.Data.Columns)
 	target := cdl.Data.Columns[l-1]
 	target.Comment = c.GetCol_comment().GetText()
+	if strings.HasPrefix(target.Comment, "'") || strings.HasPrefix(target.Comment, `""`) {
+		target.Comment = target.Comment[1 : len(target.Comment)-1]
+	}
 	cdl.Data.Columns[l-1] = target
 }

@@ -1231,6 +1231,7 @@ SINGLE_QUOTE_SYMB:                   '\'';
 DOUBLE_QUOTE_SYMB:                   '"';
 REVERSE_QUOTE_SYMB:                  '`';
 COLON_SYMB:                          ':';
+QUOTE_SYMB_OUTTER: QUOTE_SYMB;
 
 fragment QUOTE_SYMB
     : SINGLE_QUOTE_SYMB | DOUBLE_QUOTE_SYMB | REVERSE_QUOTE_SYMB

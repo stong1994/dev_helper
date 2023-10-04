@@ -18,11 +18,11 @@ create_definition: col_name column_definition;
 //    | ('CONSTRAINT' (symbol)?)? 'FOREIGN' 'KEY' (index_name)? '(' col_name (',' col_name)* ')' reference_definition
 //    | check_constraint_definition;
 
-column_definition: data_type show_length? (NOT 'NULL' | 'NULL')? (DEFAULT (literal | '(' expr ')'))? ('AUTO_INCREMENT')? ('UNIQUE')? (key_defi? comment_defi? | comment_defi? key_defi?);
+column_definition: data_type show_length? (NOT 'NULL' | 'NULL')? (DEFAULT (literal | '(' expr ')'))? ('AUTO_INCREMENT')? ('UNIQUE')? ((key_defi? comment_defi? )| (comment_defi? key_defi?));
 //column_definition: data_type (show_length)? (NOT 'NULL' | 'NULL')? ('DEFAULT' (literal | '(' expr ')'))? ('VISIBLE' | 'INVISIBLE')? ('AUTO_INCREMENT')? ('UNIQUE' ('KEY'))? (('PRIMARY')? 'KEY')? ('COMMENT' '\'' string '\'')? ('COLLATE' collation_name)? ('COLUMN_FORMAT' ('FIXED' | 'DYNAMIC' | 'DEFAULT'))? ('ENGINE_ATTRIBUTE' ('=' string))? ('SECONDARY_ENGINE_ATTRIBUTE' ('=' string))? ('STORAGE' ('DISK' | 'MEMORY'))? (reference_definition)? (check_constraint_definition)?
 //    | data_type ('COLLATE' collation_name)? ('GENERATED' 'ALWAYS')? 'AS' '(' expr ')' ('COLLATE' | 'STORED')? (NOT 'NULL' | 'NULL')? ('VISIBLE' | 'INVISIBLE')? ('UNIQUE' ('KEY'))? (('PRIMARY')? 'KEY')? ('COMMENT' '\'' string '\'')? (reference_definition)? (check_constraint_definition)?;
 
-comment_defi: COMMENT '\'' col_comment=string '\'';
+comment_defi: COMMENT col_comment=STRING_LITERAL;
 key_defi: ('PRIMARY')? 'KEY';
 show_length: '(' DIGTS ')';
 

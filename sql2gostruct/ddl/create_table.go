@@ -79,10 +79,10 @@ func convertToCamelCase(word string) string {
 
 func getColumns(columns []Column) string {
 	var lines []string
-	columnWidths := [3]int{}
+	columnWidths := [4]int{}
 	for _, column := range columns {
 		items := getColumn(column)
-		if len(items) != 3 {
+		if len(items) != 4 {
 			panic("some code changed?")
 		}
 		for i, v := range items {
@@ -104,8 +104,15 @@ func getColumns(columns []Column) string {
 }
 
 // 返回值eg: ID    string    gorm:"column:c_id"
-func getColumn(column Column) [3]string {
-	return [3]string{parseColumnName(column.Name), parseMysqlType(column.Type), getDBFieldName(column.Name)}
+func getColumn(column Column) [4]string {
+	return [4]string{parseColumnName(column.Name), parseMysqlType(column.Type), getDBFieldName(column.Name), getFieldComment(column.Comment)}
+}
+
+func getFieldComment(comment string) string {
+	if comment == "" {
+		return ""
+	}
+	return "// " + comment
 }
 
 func parseColumnName(name string) string {
