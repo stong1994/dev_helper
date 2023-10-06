@@ -14,6 +14,7 @@
         </div>
         <div class="right-section">
             <pre >{{ generateContent }}</pre>
+            <button v-if="generateContent" @click="copyToClipboard">Copy to Clipboard</button>
         </div>
     </div>
 </div>
@@ -52,6 +53,15 @@
                 } catch (error) {
                     console.error(error);
                     this.generateContent = `Generated content failed: ${error}`;
+                }
+            },
+            async copyToClipboard() {
+                try {
+                    await navigator.clipboard.writeText(this.generateContent);
+                    alert('Content copied to clipboard!');
+                } catch (error) {
+                    console.error(error);
+                    alert('Failed to copy content to clipboard.');
                 }
             },
         },
