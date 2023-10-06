@@ -219,5 +219,5 @@ func parseMysqlType(typ consts.ColumnType) string {
 }
 
 func getDBFieldName(field string) string {
-	return fmt.Sprintf(`gorm:"column:%s"`, field)
+	return fmt.Sprintf("`gorm:\"column:%s\"`", field)
 }
