@@ -36,7 +36,7 @@ func main() {
 		}
 		rst, err := ddl.CreateTableMethod(request.DDL)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			//w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(err.Error()))
 			return
 		}
