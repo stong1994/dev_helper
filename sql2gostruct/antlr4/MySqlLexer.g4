@@ -1,3 +1,28 @@
+/*
+MySQL (Positive Technologies) grammar
+The MIT License (MIT).
+Copyright (c) 2015-2017, Ivan Kochurkin (kvanttt@gmail.com), Positive Technologies.
+Copyright (c) 2017, Ivan Khudyashev (IHudyashov@ptsecurity.com)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*/
+
 lexer grammar MySqlLexer;
 
 options { caseInsensitive = true; }
@@ -1231,7 +1256,6 @@ SINGLE_QUOTE_SYMB:                   '\'';
 DOUBLE_QUOTE_SYMB:                   '"';
 REVERSE_QUOTE_SYMB:                  '`';
 COLON_SYMB:                          ':';
-QUOTE_SYMB_OUTTER: QUOTE_SYMB;
 
 fragment QUOTE_SYMB
     : SINGLE_QUOTE_SYMB | DOUBLE_QUOTE_SYMB | REVERSE_QUOTE_SYMB
@@ -1257,18 +1281,17 @@ FILESIZE_LITERAL:                    DEC_DIGIT+ ('K'|'M'|'G'|'T');
 
 START_NATIONAL_STRING_LITERAL:       'N' SQUOTA_STRING;
 STRING_LITERAL:                      DQUOTA_STRING | SQUOTA_STRING | BQUOTA_STRING;
-DECIMAL_LITERAL:                     ID+;
+DECIMAL_LITERAL:                     DEC_DIGIT+;
 HEXADECIMAL_LITERAL:                 'X' '\'' (HEX_DIGIT HEX_DIGIT)+ '\''
                                      | '0X' HEX_DIGIT+;
 
-REAL_LITERAL:                        (ID+)? '.' ID+
-                                     | ID+ '.' EXPONENT_NUM_PART
-                                     | (ID+)? '.' (ID+ EXPONENT_NUM_PART)
-                                     | ID+ EXPONENT_NUM_PART;
+REAL_LITERAL:                        (DEC_DIGIT+)? '.' DEC_DIGIT+
+                                     | DEC_DIGIT+ '.' EXPONENT_NUM_PART
+                                     | (DEC_DIGIT+)? '.' (DEC_DIGIT+ EXPONENT_NUM_PART)
+                                     | DEC_DIGIT+ EXPONENT_NUM_PART;
 NULL_SPEC_LITERAL:                   '\\' 'N';
 BIT_STRING:                          BIT_STRING_L;
 STRING_CHARSET_NAME:                 '_' CHARSET_NAME;
-DIGTS: DEC_DIGIT+;
 
 
 
@@ -1284,10 +1307,6 @@ DOT_ID:                              '.' ID_LITERAL;
 // Identifiers
 
 ID:                                  ID_LITERAL;
-COLUMN_NAME_ID: (LETTER | '_') (LETTER | DEC_DIGIT | '_')*;
-TABLE_NAME_ID: (LETTER | '_') (LETTER | DEC_DIGIT | '_')*;
-DB_NAME_ID: (LETTER | '_') (LETTER | DEC_DIGIT | '_' | '-')*;
-
 // DOUBLE_QUOTE_ID:                  '"' ~'"'+ '"';
 REVERSE_QUOTE_ID:                    BQUOTA_STRING;
 HOST_IP_ADDRESS:                     (AT_SIGN IP_ADDRESS);
@@ -1300,7 +1319,9 @@ GLOBAL_ID:                           AT_SIGN AT_SIGN
                                        [A-Z0-9._$\u0080-\uFFFF]+ | BQUOTA_STRING
                                      );
 
+
 // Fragments for Literal primitives
+
 fragment CHARSET_NAME:               ARMSCII8 | ASCII | BIG5 | BINARY | CP1250
                                      | CP1251 | CP1256 | CP1257 | CP850
                                      | CP852 | CP866 | CP932 | DEC8 | EUCJPMS
@@ -1311,8 +1332,8 @@ fragment CHARSET_NAME:               ARMSCII8 | ASCII | BIG5 | BINARY | CP1250
                                      | UCS2 | UJIS | UTF16 | UTF16LE | UTF32
                                      | UTF8 | UTF8MB3 | UTF8MB4;
 
-fragment EXPONENT_NUM_PART:          'E' [-+]? ID+;
-fragment ID_LITERAL:                 [A-Z_$0-9]*?[A-Z_$]+?[A-Z_$0-9]*;
+fragment EXPONENT_NUM_PART:          'E' [-+]? DEC_DIGIT+;
+fragment ID_LITERAL:                 [A-Z_$0-9\u0080-\uFFFF]*?[A-Z_$\u0080-\uFFFF]+?[A-Z_$0-9\u0080-\uFFFF]*;
 fragment DQUOTA_STRING:              '"' ( '\\'. | '""' | ~('"'| '\\') )* '"';
 fragment SQUOTA_STRING:              '\'' ('\\'. | '\'\'' | ~('\'' | '\\'))* '\'';
 fragment BQUOTA_STRING:              '`' ( ~'`' | '``' )* '`';
@@ -1320,7 +1341,6 @@ fragment HEX_DIGIT:                  [0-9A-F];
 fragment DEC_DIGIT:                  [0-9];
 fragment BIT_STRING_L:               'B' '\'' [01]+ '\'';
 fragment IP_ADDRESS:                 [0-9]+ '.' [0-9.]+ | [0-9A-F]* ':' [0-9A-F]* ':' [0-9A-F:]+;
-fragment LETTER: [A-Z];
 
 
 // Last tokens must generate Errors

@@ -13,9 +13,9 @@ func (c CrateTableAdaptorAntlr) Parse(ddl string) (CreateDDLData, error) {
 
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
 	fmt.Println(stream.GetAllText())
-	createParser := parser.NewCreateParser(stream)
+	createParser := parser.NewMySqlParser(stream)
 
 	listener := NewCreateDDLListener()
-	antlr.NewParseTreeWalker().Walk(listener, createParser.Stat())
+	antlr.NewParseTreeWalker().Walk(listener, createParser.Root())
 	return listener.Data, nil
 }

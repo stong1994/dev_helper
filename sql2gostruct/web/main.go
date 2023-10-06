@@ -47,7 +47,8 @@ func main() {
 		}
 	})
 
-	err := http.ListenAndServe(":9090", nil) // 设置监听的端口
+	fmt.Println("listening :9094")
+	err := http.ListenAndServe(":9094", nil) // 设置监听的端口
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
