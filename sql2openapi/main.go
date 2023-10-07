@@ -145,12 +145,12 @@ func GenSchema(tables []CreateDDLData) *openapi3.T {
 					Required: true,
 					Schema:   openapi3.NewStringSchema().NewRef(),
 				}}}
-				responses := openapi3.NewResponses()
-				responses["200"] = &openapi3.ResponseRef{
-					//Value: openapi3.NewResponse().WithJSONSchema(schema),
-					Ref: refNameView,
-				}
-				op.Responses = responses
+				//responses := openapi3.NewResponses()
+				//responses["200"] = &openapi3.ResponseRef{
+				//	Value: openapi3.NewResponse().WithJSONSchema(fillResp(openapi3.NewSchemaRef(refNameView, nil))),
+				//	//Ref: refNameView,
+				//}
+				op.Responses = getResponse(openapi3.NewSchemaRef(refNameView, nil))
 				item.Get = op
 			case pathTypeList:
 				op := openapi3.NewOperation()
@@ -179,28 +179,35 @@ func GenSchema(tables []CreateDDLData) *openapi3.T {
 						Schema:      openapi3.NewStringSchema().NewRef(),
 					}},
 				}
-				responses := openapi3.NewResponses()
 
 				resp := openapi3.NewArraySchema()
 				resp.Items = openapi3.NewSchemaRef(refNameView, nil)
-				responses["200"] = &openapi3.ResponseRef{
-					Value: openapi3.NewResponse().WithJSONSchemaRef(&openapi3.SchemaRef{
-						Value: resp,
-					}),
-				}
-				op.Responses = responses
+
+				op.Responses = getResponse(resp.NewRef())
 				item.Get = op
 			case pathTypeCreate:
 				op := openapi3.NewOperation()
 				op.Tags = append(op.Tags, tag)
 				op.Summary = fmt.Sprintf("新增%s", tag)
 				op.RequestBody = &openapi3.RequestBodyRef{Value: openapi3.NewRequestBody().WithJSONSchemaRef(openapi3.NewSchemaRef(refNameCreate, nil))}
+				resp := openapi3.NewObjectSchema()
+				resp.Properties = map[string]*openapi3.SchemaRef{
+					"id": openapi3.NewStringSchema().NewRef(),
+				}
+
+				op.Responses = getResponse(resp.NewRef())
 				item.Post = op
 			case pathTypeUpdate:
 				op := openapi3.NewOperation()
 				op.Tags = append(op.Tags, tag)
 				op.Summary = fmt.Sprintf("更新%s", tag)
 				op.RequestBody = &openapi3.RequestBodyRef{Value: openapi3.NewRequestBody().WithJSONSchemaRef(openapi3.NewSchemaRef(refNameEdit, nil))}
+				resp := openapi3.NewObjectSchema()
+				resp.Properties = map[string]*openapi3.SchemaRef{
+					"id": openapi3.NewStringSchema().NewRef(),
+				}
+				op.Responses = getResponse(resp.NewRef())
+
 				item.Post = op
 			case pathTypeDelete:
 				op := openapi3.NewOperation()
@@ -212,6 +219,11 @@ func GenSchema(tables []CreateDDLData) *openapi3.T {
 					Required: true,
 					Content:  openapi3.NewContentWithJSONSchema(schema),
 				}}
+				resp := openapi3.NewObjectSchema()
+				resp.Properties = map[string]*openapi3.SchemaRef{
+					"id": openapi3.NewStringSchema().NewRef(),
+				}
+				op.Responses = getResponse(resp.NewRef())
 				item.Post = op
 			}
 			swagger.Paths[path] = &item
@@ -367,4 +379,26 @@ func ignoreFieldsInEditModel(field string) bool {
 		return true
 	}
 	return false
+}
+
+func fillResp(ref *openapi3.SchemaRef) *openapi3.Schema {
+	rst := openapi3.NewObjectSchema()
+	code := openapi3.NewIntegerSchema()
+	code.Title = "状态码"
+	code.Description = "200-ok"
+	rst.Properties = map[string]*openapi3.SchemaRef{
+		"errormsg":   openapi3.NewStringSchema().NewRef(),
+		"resultcode": code.NewRef(),
+		"data":       ref,
+	}
+	return rst
+}
+
+func getResponse(ref *openapi3.SchemaRef) openapi3.Responses {
+	responses := openapi3.NewResponses()
+
+	responses["200"] = &openapi3.ResponseRef{
+		Value: openapi3.NewResponse().WithJSONSchema(fillResp(ref)),
+	}
+	return responses
 }
