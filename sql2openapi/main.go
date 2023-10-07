@@ -20,7 +20,6 @@ func main() {
 
 	http.HandleFunc("/ddl_create_table", func(w http.ResponseWriter, r *http.Request) {
 		bytes, err := io.ReadAll(r.Body)
-		//fmt.Println(string(bytes))
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(err.Error()))
@@ -124,7 +123,7 @@ func GenSchema(tables []CreateDDLData) *openapi3.T {
 			})
 		}
 		component := getComponent(table)
-		//refName := fmt.Sprintf("#/components/schemas/%s", tag)
+		refName := fmt.Sprintf("#/components/schemas/%s", tag)
 		schemas[tag] = component
 
 		for i, path := range getPaths(table.TableName) {
@@ -167,10 +166,11 @@ func GenSchema(tables []CreateDDLData) *openapi3.T {
 				responses := openapi3.NewResponses()
 
 				resp := openapi3.NewArraySchema()
-				resp.Properties = map[string]*openapi3.SchemaRef{"application/json": component}
+				resp.Items = openapi3.NewSchemaRef(refName, nil)
+				//resp.Properties = map[string]*openapi3.SchemaRef{"application/json": component}
 				responses["200"] = &openapi3.ResponseRef{
 					Value: openapi3.NewResponse().WithJSONSchemaRef(&openapi3.SchemaRef{
-						Value: openapi3.NewArraySchema(),
+						Value: resp,
 					}),
 				}
 				op.Responses = responses
