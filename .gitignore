@@ -2,3 +2,5 @@
 .chat
 sql2gostruct/something.sql
 sql2gostruct/.antlr/
+sql2gostruct/chrome_extension/
+sql2openapi/test.sql
