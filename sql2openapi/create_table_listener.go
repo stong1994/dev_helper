@@ -28,6 +28,17 @@ type CreateDDLData struct {
 	Comment   string
 }
 
+func (cd CreateDDLData) GetDesc() string {
+	name := cd.Comment
+	if name == "" {
+		name = cd.TableName
+	}
+	if strings.HasSuffix(name, "表") {
+		name = strings.TrimSuffix(name, "表")
+	}
+	return name
+}
+
 type CreateTableListener struct {
 	*parser.BaseMySqlParserListener
 	Data      []CreateDDLData

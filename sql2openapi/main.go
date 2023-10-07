@@ -104,7 +104,7 @@ func GenSchema(tables []CreateDDLData) *openapi3.T {
 		OpenAPI:    "3.0.1",
 		Components: &cs,
 		Info: &openapi3.Info{
-			Title:          "eebo.ehr.metabase-元数据管理前台",
+			Title:          "eebo.ehr.metabase-元数据管理前台", // todo
 			TermsOfService: "",
 			Version:        "1.0.0",
 		},
@@ -113,7 +113,7 @@ func GenSchema(tables []CreateDDLData) *openapi3.T {
 	}
 	tagMap := map[string]bool{}
 	for _, table := range tables {
-		tag := getTag(table.Comment)
+		tag := table.GetDesc()
 		if tag == "" {
 			tag = table.TableName
 		}
@@ -280,16 +280,6 @@ func getEntitySchemaEdit(table CreateDDLData) (*openapi3.Schema, string) {
 		}
 	}
 	return s, fmt.Sprintf("%s_EDIT", table.GetDesc())
-}
-
-func getTag(comment string) string {
-	if comment == "" {
-		return ""
-	}
-	if strings.HasSuffix(comment, "表") {
-		return strings.TrimSuffix(comment, "表")
-	}
-	return comment
 }
 
 func getPaths(tableName string) []string {
