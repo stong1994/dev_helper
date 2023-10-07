@@ -56,7 +56,7 @@ func main() {
 		}
 
 		// Write the JSON to a file
-		file, err := os.Create("schema.json")
+		file, err := os.Create("openapi.json")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -68,7 +68,6 @@ func main() {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		//data, _ := json.Marshal(map[string]interface{}{"struct": rst})
 		if _, err = w.Write(jsonBytes); err != nil {
 			panic(err)
 		}
@@ -99,6 +98,8 @@ func GetTables(ddl string) ([]CreateDDLData, error) {
 
 func GenSchema(tables []CreateDDLData) *openapi3.T {
 	cs := openapi3.NewComponents()
+	cs.Schemas = make(openapi3.Schemas)
+
 	swagger := &openapi3.T{
 		OpenAPI:    "3.0.1",
 		Components: &cs,
@@ -111,7 +112,6 @@ func GenSchema(tables []CreateDDLData) *openapi3.T {
 		Servers: nil,
 	}
 	tagMap := map[string]bool{}
-	schemas := make(map[string]*openapi3.SchemaRef)
 	for _, table := range tables {
 		tag := getTag(table.Comment)
 		if tag == "" {
@@ -122,9 +122,12 @@ func GenSchema(tables []CreateDDLData) *openapi3.T {
 				Name: tag,
 			})
 		}
-		component := getComponent(table)
-		refName := fmt.Sprintf("#/components/schemas/%s", tag)
-		schemas[tag] = component
+		schemaView, viewTag := getEntitySchemaView(table)
+		schemaEdit, editTag := getEntitySchemaEdit(table)
+		refNameView := fmt.Sprintf("#/components/schemas/%s", viewTag)
+		refNameEdit := fmt.Sprintf("#/components/schemas/%s", editTag)
+		swagger.Components.Schemas[viewTag] = openapi3.NewSchemaRef("", schemaView)
+		swagger.Components.Schemas[editTag] = openapi3.NewSchemaRef("", schemaEdit)
 
 		for i, path := range getPaths(table.TableName) {
 			item := openapi3.PathItem{}
@@ -141,7 +144,8 @@ func GenSchema(tables []CreateDDLData) *openapi3.T {
 				}}}
 				responses := openapi3.NewResponses()
 				responses["200"] = &openapi3.ResponseRef{
-					Value: openapi3.NewResponse().WithJSONSchemaRef(component),
+					//Value: openapi3.NewResponse().WithJSONSchema(schema),
+					Ref: refNameView,
 				}
 				op.Responses = responses
 				item.Get = op
@@ -166,8 +170,7 @@ func GenSchema(tables []CreateDDLData) *openapi3.T {
 				responses := openapi3.NewResponses()
 
 				resp := openapi3.NewArraySchema()
-				resp.Items = openapi3.NewSchemaRef(refName, nil)
-				//resp.Properties = map[string]*openapi3.SchemaRef{"application/json": component}
+				resp.Items = openapi3.NewSchemaRef(refNameView, nil)
 				responses["200"] = &openapi3.ResponseRef{
 					Value: openapi3.NewResponse().WithJSONSchemaRef(&openapi3.SchemaRef{
 						Value: resp,
@@ -179,13 +182,13 @@ func GenSchema(tables []CreateDDLData) *openapi3.T {
 				op := openapi3.NewOperation()
 				op.Tags = append(op.Tags, tag)
 				op.Summary = fmt.Sprintf("新增%s", tag)
-				op.RequestBody = &openapi3.RequestBodyRef{Value: openapi3.NewRequestBody().WithJSONSchemaRef(component)}
+				op.RequestBody = &openapi3.RequestBodyRef{Ref: refNameEdit}
 				item.Post = op
 			case pathTypeUpdate:
 				op := openapi3.NewOperation()
 				op.Tags = append(op.Tags, tag)
 				op.Summary = fmt.Sprintf("更新%s", tag)
-				op.RequestBody = &openapi3.RequestBodyRef{Value: openapi3.NewRequestBody().WithJSONSchemaRef(component)}
+				op.RequestBody = &openapi3.RequestBodyRef{Ref: refNameEdit}
 				item.Post = op
 			case pathTypeDelete:
 				op := openapi3.NewOperation()
@@ -202,7 +205,7 @@ func GenSchema(tables []CreateDDLData) *openapi3.T {
 			swagger.Paths[path] = &item
 		}
 	}
-	swagger.Components.Schemas = schemas
+
 	return swagger
 }
 
@@ -218,34 +221,65 @@ func preHandle(table CreateDDLData) CreateDDLData {
 	return table
 }
 
-func getComponent(table CreateDDLData) *openapi3.SchemaRef {
-	sr := new(openapi3.SchemaRef)
-	sr.Value = new(openapi3.Schema)
-	sr.Value.Type = "object"
-	sr.Value.Properties = make(openapi3.Schemas)
+func getEntitySchemaView(table CreateDDLData) (*openapi3.Schema, string) {
+	s := new(openapi3.Schema)
+	s.Type = "object"
+	s.Properties = make(openapi3.Schemas)
 	for _, column := range table.Columns {
 		switch column.Type {
-		case consts.TINYINT, consts.SMALLINT, consts.MEDIUMINT, consts.MIDDLEINT,
-			consts.INT,
-			consts.INT1,
-			consts.INT2,
-			consts.INT3,
-			consts.INT4,
-			consts.INT8,
-			consts.INTEGER,
-			consts.BIGINT:
+		case consts.TINYINT:
+			schema := openapi3.NewBoolSchema()
+			schema.Description = column.Comment
+			s.Properties[column.Name] = openapi3.NewSchemaRef("", schema)
+		case consts.SMALLINT, consts.MEDIUMINT, consts.MIDDLEINT, consts.INT, consts.INT1, consts.INT2,
+			consts.INT3, consts.INT4, consts.INT8, consts.INTEGER, consts.BIGINT:
 			schema := openapi3.NewIntegerSchema()
 			schema.Description = column.Comment
-			sr.Value.Properties[column.Name] = openapi3.NewSchemaRef("", schema)
+			s.Properties[column.Name] = openapi3.NewSchemaRef("", schema)
 		default:
 			schema := openapi3.NewStringSchema()
 			schema.Description = column.Comment
-			sr.Value.Properties[column.Name] = openapi3.NewSchemaRef("", schema)
-
+			s.Properties[column.Name] = openapi3.NewSchemaRef("", schema)
 		}
-
+		if column.Name == "add_by_id" {
+			schema := openapi3.NewStringSchema()
+			schema.Description = "添加人姓名"
+			s.Properties["add_by_name"] = openapi3.NewSchemaRef("", schema)
+		}
+		if column.Name == "update_by_id" {
+			schema := openapi3.NewStringSchema()
+			schema.Description = "更新人姓名"
+			s.Properties["update_by_name"] = openapi3.NewSchemaRef("", schema)
+		}
 	}
-	return sr
+	return s, fmt.Sprintf("%s_VIEW", table.GetDesc())
+}
+
+func getEntitySchemaEdit(table CreateDDLData) (*openapi3.Schema, string) {
+	s := new(openapi3.Schema)
+	s.Type = "object"
+	s.Properties = make(openapi3.Schemas)
+	for _, column := range table.Columns {
+		if ignoreFieldsInEditModel(column.Name) {
+			continue
+		}
+		switch column.Type {
+		case consts.TINYINT:
+			schema := openapi3.NewBoolSchema()
+			schema.Description = column.Comment
+			s.Properties[column.Name] = openapi3.NewSchemaRef("", schema)
+		case consts.SMALLINT, consts.MEDIUMINT, consts.MIDDLEINT, consts.INT, consts.INT1,
+			consts.INT2, consts.INT3, consts.INT4, consts.INT8, consts.INTEGER, consts.BIGINT:
+			schema := openapi3.NewIntegerSchema()
+			schema.Description = column.Comment
+			s.Properties[column.Name] = openapi3.NewSchemaRef("", schema)
+		default:
+			schema := openapi3.NewStringSchema()
+			schema.Description = column.Comment
+			s.Properties[column.Name] = openapi3.NewSchemaRef("", schema)
+		}
+	}
+	return s, fmt.Sprintf("%s_EDIT", table.GetDesc())
 }
 
 func getTag(comment string) string {
@@ -275,3 +309,10 @@ const (
 	pathTypeUpdate
 	pathTypeDelete
 )
+
+func ignoreFieldsInEditModel(field string) bool {
+	if field == "add_by_id" || field == "update_by_id" || field == "update_dt" || field == "add_dt" || field == "is_delete" {
+		return true
+	}
+	return false
+}
