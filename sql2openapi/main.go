@@ -123,10 +123,13 @@ func GenSchema(tables []CreateDDLData) *openapi3.T {
 			})
 		}
 		schemaView, viewTag := getEntitySchemaView(table)
+		schemaCreate, createTag := getEntitySchemaCreate(table)
 		schemaEdit, editTag := getEntitySchemaEdit(table)
 		refNameView := fmt.Sprintf("#/components/schemas/%s", viewTag)
+		refNameCreate := fmt.Sprintf("#/components/schemas/%s", createTag)
 		refNameEdit := fmt.Sprintf("#/components/schemas/%s", editTag)
 		swagger.Components.Schemas[viewTag] = openapi3.NewSchemaRef("", schemaView)
+		swagger.Components.Schemas[createTag] = openapi3.NewSchemaRef("", schemaCreate)
 		swagger.Components.Schemas[editTag] = openapi3.NewSchemaRef("", schemaEdit)
 
 		for i, path := range getPaths(table.TableName) {
@@ -155,16 +158,25 @@ func GenSchema(tables []CreateDDLData) *openapi3.T {
 				op.Summary = fmt.Sprintf("批量获取%s", tag)
 				op.Parameters = []*openapi3.ParameterRef{
 					{Value: &openapi3.Parameter{
-						Name:     "p",
-						In:       "query",
-						Required: false,
-						Schema:   openapi3.NewIntegerSchema().NewRef(),
+						Name:        "p",
+						In:          "query",
+						Required:    false,
+						Description: "页码，从1开始",
+						Schema:      openapi3.NewIntegerSchema().NewRef(),
 					}},
 					{Value: &openapi3.Parameter{
-						Name:     "limit",
-						In:       "query",
-						Required: false,
-						Schema:   openapi3.NewIntegerSchema().NewRef(),
+						Name:        "limit",
+						In:          "query",
+						Required:    false,
+						Description: "每页限制数量",
+						Schema:      openapi3.NewIntegerSchema().NewRef(),
+					}},
+					{Value: &openapi3.Parameter{
+						Name:        "search",
+						In:          "query",
+						Required:    false,
+						Description: "搜索内容",
+						Schema:      openapi3.NewStringSchema().NewRef(),
 					}},
 				}
 				responses := openapi3.NewResponses()
@@ -182,13 +194,13 @@ func GenSchema(tables []CreateDDLData) *openapi3.T {
 				op := openapi3.NewOperation()
 				op.Tags = append(op.Tags, tag)
 				op.Summary = fmt.Sprintf("新增%s", tag)
-				op.RequestBody = &openapi3.RequestBodyRef{Ref: refNameEdit}
+				op.RequestBody = &openapi3.RequestBodyRef{Value: openapi3.NewRequestBody().WithJSONSchemaRef(openapi3.NewSchemaRef(refNameCreate, nil))}
 				item.Post = op
 			case pathTypeUpdate:
 				op := openapi3.NewOperation()
 				op.Tags = append(op.Tags, tag)
 				op.Summary = fmt.Sprintf("更新%s", tag)
-				op.RequestBody = &openapi3.RequestBodyRef{Ref: refNameEdit}
+				op.RequestBody = &openapi3.RequestBodyRef{Value: openapi3.NewRequestBody().WithJSONSchemaRef(openapi3.NewSchemaRef(refNameEdit, nil))}
 				item.Post = op
 			case pathTypeDelete:
 				op := openapi3.NewOperation()
@@ -228,9 +240,15 @@ func getEntitySchemaView(table CreateDDLData) (*openapi3.Schema, string) {
 	for _, column := range table.Columns {
 		switch column.Type {
 		case consts.TINYINT:
-			schema := openapi3.NewBoolSchema()
-			schema.Description = column.Comment
-			s.Properties[column.Name] = openapi3.NewSchemaRef("", schema)
+			if strings.Contains(column.Name, "is_") {
+				schema := openapi3.NewBoolSchema()
+				schema.Description = column.Comment
+				s.Properties[column.Name] = openapi3.NewSchemaRef("", schema)
+			} else {
+				schema := openapi3.NewIntegerSchema()
+				schema.Description = column.Comment
+				s.Properties[column.Name] = openapi3.NewSchemaRef("", schema)
+			}
 		case consts.SMALLINT, consts.MEDIUMINT, consts.MIDDLEINT, consts.INT, consts.INT1, consts.INT2,
 			consts.INT3, consts.INT4, consts.INT8, consts.INTEGER, consts.BIGINT:
 			schema := openapi3.NewIntegerSchema()
@@ -265,9 +283,16 @@ func getEntitySchemaEdit(table CreateDDLData) (*openapi3.Schema, string) {
 		}
 		switch column.Type {
 		case consts.TINYINT:
-			schema := openapi3.NewBoolSchema()
-			schema.Description = column.Comment
-			s.Properties[column.Name] = openapi3.NewSchemaRef("", schema)
+			if strings.Contains(column.Name, "is_") {
+				schema := openapi3.NewBoolSchema()
+				schema.Description = column.Comment
+				s.Properties[column.Name] = openapi3.NewSchemaRef("", schema)
+			} else {
+				schema := openapi3.NewIntegerSchema()
+				schema.Description = column.Comment
+				s.Properties[column.Name] = openapi3.NewSchemaRef("", schema)
+			}
+
 		case consts.SMALLINT, consts.MEDIUMINT, consts.MIDDLEINT, consts.INT, consts.INT1,
 			consts.INT2, consts.INT3, consts.INT4, consts.INT8, consts.INTEGER, consts.BIGINT:
 			schema := openapi3.NewIntegerSchema()
@@ -280,6 +305,43 @@ func getEntitySchemaEdit(table CreateDDLData) (*openapi3.Schema, string) {
 		}
 	}
 	return s, fmt.Sprintf("%s_EDIT", table.GetDesc())
+}
+
+func getEntitySchemaCreate(table CreateDDLData) (*openapi3.Schema, string) {
+	s := new(openapi3.Schema)
+	s.Type = "object"
+	s.Properties = make(openapi3.Schemas)
+	for i, column := range table.Columns {
+		if i == 0 { // always declare the id column first
+			continue
+		}
+		if ignoreFieldsInEditModel(column.Name) {
+			continue
+		}
+		switch column.Type {
+		case consts.TINYINT:
+			if strings.Contains(column.Name, "is_") {
+				schema := openapi3.NewBoolSchema()
+				schema.Description = column.Comment
+				s.Properties[column.Name] = openapi3.NewSchemaRef("", schema)
+			} else {
+				schema := openapi3.NewIntegerSchema()
+				schema.Description = column.Comment
+				s.Properties[column.Name] = openapi3.NewSchemaRef("", schema)
+			}
+
+		case consts.SMALLINT, consts.MEDIUMINT, consts.MIDDLEINT, consts.INT, consts.INT1,
+			consts.INT2, consts.INT3, consts.INT4, consts.INT8, consts.INTEGER, consts.BIGINT:
+			schema := openapi3.NewIntegerSchema()
+			schema.Description = column.Comment
+			s.Properties[column.Name] = openapi3.NewSchemaRef("", schema)
+		default:
+			schema := openapi3.NewStringSchema()
+			schema.Description = column.Comment
+			s.Properties[column.Name] = openapi3.NewSchemaRef("", schema)
+		}
+	}
+	return s, fmt.Sprintf("%s_CREATE", table.GetDesc())
 }
 
 func getPaths(tableName string) []string {
@@ -301,7 +363,7 @@ const (
 )
 
 func ignoreFieldsInEditModel(field string) bool {
-	if field == "add_by_id" || field == "update_by_id" || field == "update_dt" || field == "add_dt" || field == "is_delete" {
+	if field == "add_by_id" || field == "update_by_id" || field == "update_dt" || field == "add_dt" || field == "is_delete" || field == "is_deleted" {
 		return true
 	}
 	return false
