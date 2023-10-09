@@ -12,7 +12,7 @@ go run web/main.go
 使用antlr4生成go文件
 ```bash
  cd antlr4
- antlr4 -Dlanguage=Go -o ../parser -visitor MySqlParser.g4 MySqlLexer.g4
+ antlr4 -Dlanguage=Go -o ../parser MySqlParser.g4 MySqlLexer.g4
 ```
 ### antlr4 gui
 ```bash

@@ -56,5 +56,5 @@ func (cdl CreateDDLListener) EnterCommentColumnConstraint(c *parser.CommentColum
 }
 
 func hasQuoted(str string) bool {
-	return strings.HasPrefix(str, ".") || strings.HasPrefix(str, "\"") || strings.HasPrefix(str, "`")
+	return strings.HasPrefix(str, "'") || strings.HasPrefix(str, "\"") || strings.HasPrefix(str, "`")
 }
