@@ -99,6 +99,7 @@ func GetTables(ddl string) ([]CreateDDLData, error) {
 func GenSchema(tables []CreateDDLData) *openapi3.T {
 	cs := openapi3.NewComponents()
 	cs.Schemas = make(openapi3.Schemas)
+	cs.Schemas["CommonResp"] = commonResp().NewRef()
 
 	swagger := &openapi3.T{
 		OpenAPI:    "3.0.1",
@@ -390,6 +391,19 @@ func fillResp(ref *openapi3.SchemaRef) *openapi3.Schema {
 		"errormsg":   openapi3.NewStringSchema().NewRef(),
 		"resultcode": code.NewRef(),
 		"data":       ref,
+	}
+	return rst
+}
+
+func commonResp() *openapi3.Schema {
+	rst := openapi3.NewObjectSchema()
+	code := openapi3.NewIntegerSchema()
+	code.Title = "状态码"
+	code.Description = "200-ok"
+	rst.Properties = map[string]*openapi3.SchemaRef{
+		"errormsg":   openapi3.NewStringSchema().NewRef(),
+		"resultcode": code.NewRef(),
+		"data":       openapi3.NewSchema().NewRef(),
 	}
 	return rst
 }
