@@ -10,8 +10,8 @@ type Controller struct {
 	service *{{.ModuleNameSnake}}.Service
 }
 
-func New{{.ModuleName}}Controller(service *{{.ModuleNameSnake}}.Service) *Controller {
-	return &Controller{
+func New{{.ModuleName}}Controller(service *{{.ModuleNameSnake}}.Service) Controller {
+	return Controller{
 		service: service,
 	}
 }

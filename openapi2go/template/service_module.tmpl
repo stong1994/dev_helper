@@ -28,7 +28,7 @@ func (s Service) {{$Enum.RestName}}(ctx context.Context, param {{$Enum.Param}}) 
 
 	data, err := s.adaptor.{{$Enum.RestName}}(ctx, param)
 	if err != nil {
-	    {{if eq $Enum.Resp "dto.PagenationResponse{}"}}
+	    {{if eq $Enum.Resp $.Pagenation }}
 	        return nil, service.{{$.BpProjectName}}AccessErr.WithErr(err)
         {{else}}
             return {{$Enum.Resp}}{}, service.{{$.BpProjectName}}AccessErr.WithErr(err)

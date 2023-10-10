@@ -197,6 +197,7 @@ type ServiceModuleGen struct {
 	ProjectName     string
 	BpProjectName   string
 	ModuleNameSnake string
+	Pagenation      string
 }
 
 type AdapterModuleAPI struct {
@@ -339,6 +340,7 @@ func genServiceModule(swagger *openapi3.T) (string, error) {
 		ProjectName:     "eebo.ehr.metabase",
 		ModuleNameSnake: getModuleNameSnake(firstPath),
 		BpProjectName:   "BpMetabase",
+		Pagenation:      "dto.PagenationResponse",
 	}
 
 	for _, url := range swagger.Paths.InMatchingOrder() {
@@ -422,18 +424,30 @@ func genAdapterModule(swagger *openapi3.T) (string, error) {
 func getModuleName(url string) string {
 	sps := strings.Split(url, "/")
 	target := sps[0]
-	if len(sps) >= 2 {
-		target = sps[len(sps)-2]
+	for _, v := range sps {
+		if v != "" {
+			target = v
+			break
+		}
 	}
+	//if len(sps) >= 2 {
+	//	target = sps[len(sps)-2]
+	//}
 	return convertToCamelCase(target)
 }
 
 func getModuleNameSnake(url string) string {
 	sps := strings.Split(url, "/")
 	target := sps[0]
-	if len(sps) >= 2 {
-		target = sps[len(sps)-2]
+	for _, v := range sps {
+		if v != "" {
+			target = v
+			break
+		}
 	}
+	//if len(sps) >= 2 {
+	//	target = sps[len(sps)-2]
+	//}
 	return target
 }
 

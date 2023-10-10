@@ -62,10 +62,10 @@
             async copyToClipboard() {
                 try {
                     await navigator.clipboard.writeText(this.generateContent);
-                    alert('Content copied to clipboard!');
+                    // alert('Content copied to clipboard!');
                 } catch (error) {
                     console.error(error);
-                    alert('Failed to copy content to clipboard.');
+                    // alert('Failed to copy content to clipboard.');
                 }
             },
         },
