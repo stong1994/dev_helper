@@ -67,6 +67,12 @@ func main() {
 				w.Write([]byte(err.Error()))
 				return
 			}
+		case "adaptorModule":
+			content, err = genAdapterModule(swagger)
+			if err != nil {
+				w.Write([]byte(err.Error()))
+				return
+			}
 		}
 
 		data := map[string]string{"fileName": fileName, "content": content}
@@ -169,6 +175,22 @@ type ServiceModuleGen struct {
 	ModuleNameSnake string
 }
 
+type AdapterModuleAPI struct {
+	RestName string
+	Param    string
+	Resp     string
+	Get      bool
+	Path     string
+}
+
+type AdapterModuleGen struct {
+	API             []AdapterModuleAPI
+	ModuleName      string
+	ProjectName     string
+	BpProjectName   string
+	ModuleNameSnake string
+}
+
 func genServiceModule(swagger *openapi3.T) (string, error) {
 	tmpl := "template/service_module.tmpl"
 
@@ -202,6 +224,57 @@ func genServiceModule(swagger *openapi3.T) (string, error) {
 		}
 		gen.API = append(gen.API, ServiceModuleAPI{
 			RestName: getRestName(url),
+			//Param: codegen.GenerateTypesForSchemas(),
+			Param: param,
+			Resp:  resp,
+		})
+	}
+
+	var buf bytes.Buffer
+	w := bufio.NewWriter(&buf)
+	err = tl.Execute(w, gen)
+	if err != nil {
+		return "", err
+	}
+	w.Flush()
+	return buf.String(), nil
+}
+
+func genAdapterModule(swagger *openapi3.T) (string, error) {
+	tmpl := "template/adapter_module.tmpl"
+
+	tl := template.New(tmpl)
+	data, err := codegen.GetUserTemplateText(tmpl)
+	if err != nil {
+		return "", err
+	}
+
+	tl, err = tl.Parse(data)
+	if err != nil {
+		return "", err
+	}
+
+	firstPath := swagger.Paths.InMatchingOrder()[0]
+	gen := AdapterModuleGen{
+		ModuleName:      getModuleName(firstPath),
+		ProjectName:     "eebo.ehr.metabase",
+		ModuleNameSnake: getModuleNameSnake(firstPath),
+		BpProjectName:   "BpMetabase",
+	}
+
+	for _, url := range swagger.Paths.InMatchingOrder() {
+		param, err := GetRequestParamTypeNameBySchema(url, swagger.Paths[url])
+		if err != nil {
+			return "", err
+		}
+		resp, err := GetRespTypeNameBySchema(url, swagger.Paths[url])
+		if err != nil {
+			return "", err
+		}
+		gen.API = append(gen.API, AdapterModuleAPI{
+			Get:      swagger.Paths[url].Get != nil,
+			RestName: getRestName(url),
+			Path:     url,
 			//Param: codegen.GenerateTypesForSchemas(),
 			Param: param,
 			Resp:  resp,
@@ -274,13 +347,13 @@ func GetRequestParamTypeNameBySchema(url string, path *openapi3.PathItem) (strin
 		if err != nil {
 			return "", err
 		}
-		return name + "JSONRequestBody", nil
+		return "dto." + name + "JSONRequestBody", nil
 	}
 	name, err := generateDefaultOperationID("GET", url, ToCamelCase)
 	if err != nil {
 		return "", err
 	}
-	return name + "Params", nil
+	return "dto." + name + "Params", nil
 }
 
 func getTypeNameBySchema(url string, path *openapi3.PathItem) (string, error) {

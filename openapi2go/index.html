@@ -14,6 +14,7 @@
             <p v-if="fileName">文件名称：{{ fileName }}</p>
             <button @click="callApi('dto')">生成dto</button> <!-- Add a button to call the API -->
             <button @click="callApi('serviceModule')">生成service模块</button> <!-- Add a button to call the API -->
+            <button @click="callApi('adaptorModule')">生成adaptor模块</button> <!-- Add a button to call the API -->
         </div>
         <div class="right-section">
             <button v-if="generateContent" @click="copyToClipboard">Copy to Clipboard</button>

@@ -9,7 +9,7 @@ import (
 
 type Base{{.ModuleName}} interface{
 {{range $Enum := .API}}
-    {{$Enum.RestName}}(ctx context.Context, param dto.{{$Enum.Param}}) ({{$Enum.Resp}}, error)
+    {{$Enum.RestName}}(ctx context.Context, param {{$Enum.Param}}) ({{$Enum.Resp}}, error)
 {{end}}
 }
 
@@ -24,7 +24,7 @@ func NewService(adaptor Base{{.ModuleName}}) *Service {
 }
 
 {{range $Enum := .API}}
-func (s Service) {{$Enum.RestName}}(ctx context.Context, param dto.{{$Enum.Param}}) ({{$Enum.Resp}}, service.Errno) {
+func (s Service) {{$Enum.RestName}}(ctx context.Context, param {{$Enum.Param}}) ({{$Enum.Resp}}, service.Errno) {
 
 	data, err := s.adaptor.{{$Enum.RestName}}(ctx, param)
 	if err != nil {

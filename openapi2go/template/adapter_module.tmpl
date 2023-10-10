@@ -1,0 +1,84 @@
+package {{.ModuleNameSnake}}
+
+import (
+    "context"
+    "{{.ProjectName}}/config"
+    "{{.ProjectName}}/adaptor/common"
+    "{{.ProjectName}}/service/entity/dto"
+
+    "github.com/opentracing/opentracing-go"
+)
+
+
+type Adaptor struct {
+	tracer         opentracing.Tracer
+	bpHost         string
+}
+
+func NewAdaptor(tracer opentracing.Tracer, bpHost string) *Adaptor {
+	return &Adaptor{
+		tracer:         tracer,
+		bpHost:         bpHost,
+	}
+}
+
+{{range $Enum := .API}}
+    {{if $Enum.Get}}
+    type {{$Enum.RestName}}Resp struct {
+    	common.CommonResp
+    	Data {{$Enum.Resp}} `json:"data"`
+    }
+
+    func (a *Adaptor) {{$Enum.RestName}}(ctx context.Context, param {{$Enum.Param}}) ({{$Enum.Resp}}, error) {
+        var (
+            url  = a.bpHost + "{{$Enum.Path}}"
+            resp {{$Enum.RestName}}Resp
+            req  = iris.Map{
+    			"user_id": ctx.Value("user_id"),
+            }
+        )
+    	req = common.MergeQueryParam(req, param)
+        if err := thttp.SpanGet(ctx, a.tracer, config.ServerFullName, url, common.GetHttpHeader, req, &resp); err != nil {
+            {{if eq $Enum.Resp "dto.PagenationResponse"}}
+                return nil, err
+            {{else}}
+                return {{$Enum.Resp}}{}, err
+            {{end}}
+
+        }
+        if resp.NotOK() {
+            {{if eq $Enum.Resp "dto.PagenationResponse"}}
+                return nil, resp
+            {{else}}
+                return {{$Enum.Resp}}{}, resp
+            {{end}}
+        }
+
+    	return resp.Data, nil
+    }
+    {{else}}
+    type {{$Enum.RestName}}Resp struct {
+    	common.CommonResp
+    	Data {{$Enum.Resp}} `json:"data"`
+    }
+
+    func (a *Adaptor) {{$Enum.RestName}}(ctx context.Context, param {{$Enum.Param}}) ({{$Enum.Resp}}, error) {
+        var (
+            url  = a.bpHost + "{{$Enum.Path}}"
+            resp {{$Enum.RestName}}Resp
+            req  = iris.Map{
+    			"user_id": ctx.Value("user_id"),
+            }
+        )
+    	req = common.MergePostParam(req, param)
+        if err := thttp.SpanPost(ctx, a.tracer, config.ServerFullName, url, common.PostHttpHeader, req, &resp); err != nil {
+            return {{$Enum.Resp}}{}, err
+        }
+        if resp.NotOK() {
+            return {{$Enum.Resp}}{}, resp
+        }
+
+    	return resp.Data, nil
+    }
+    {{end}}
+{{end}}
