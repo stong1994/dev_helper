@@ -5,9 +5,9 @@ import "github.com/kataras/iris/v12"
 func (r *Router) {{$.ModuleName}}(route iris.Party) {
 {{range $Enum := .API}}
     {{if $Enum.Get}}
-    route.Get("{{$Enum.Path}}", r.controllers.{{$.ModuleName}}Ctl.{{$Enum.RestName}})
+    route.Get("{{$Enum.Path}}", r.{{$.ModuleName}}Ctl.{{$Enum.RestName}})
     {{else}}
-    route.Post("{{$Enum.Path}}", r.controllers.{{$.ModuleName}}Ctl.{{$Enum.RestName}})
+    route.Post("{{$Enum.Path}}", r.{{$.ModuleName}}Ctl.{{$Enum.RestName}})
     {{end}}
 {{end}}
 }

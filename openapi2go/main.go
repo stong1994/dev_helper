@@ -270,33 +270,9 @@ func genPermCodeModule(swagger *openapi3.T) (string, error) {
 	}
 
 	firstPath := swagger.Paths.InMatchingOrder()[0]
-	gen := ControllerModuleGen{
-		ModuleName:      getModuleName(firstPath),
-		ProjectName:     "eebo.ehr.metabase",
-		ModuleNameSnake: getModuleNameSnake(firstPath),
-	}
-
-	for _, url := range swagger.Paths.InMatchingOrder() {
-		param, err := GetRequestParamTypeNameBySchema(url, swagger.Paths[url])
-		if err != nil {
-			return "", err
-		}
-		gen.API = append(gen.API, ControllerModuleAPI{
-			RestName: getRestName(url),
-			Get:      swagger.Paths[url].Get != nil,
-			//Param: codegen.GenerateTypesForSchemas(),
-			Param: param,
-		})
-	}
-
-	var buf bytes.Buffer
-	w := bufio.NewWriter(&buf)
-	err = tl.Execute(w, gen)
-	if err != nil {
-		return "", err
-	}
-	w.Flush()
-	return buf.String(), nil
+	module := getModuleName(firstPath)
+	return fmt.Sprintf(`PermCode%sView
+PermCode%sEdit`, module, module), nil
 }
 
 func genControllerModule(swagger *openapi3.T) (string, error) {

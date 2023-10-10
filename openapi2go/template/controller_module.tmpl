@@ -25,7 +25,7 @@ func (ctl Controller) {{$Enum.RestName}}(ctx iris.Context) {
 	var param {{$Enum.Param}}
 	err := ctx.ReadQuery(&param)
 	if err != nil {
-		WriteResp(ctx, nil, service.ParamInvalid.WithErr(err))
+		controller.WriteResp(ctx, nil, service.ParamInvalid.WithErr(err))
 		return
 	}
 	data, errno := ctl.service.{{$Enum.RestName}}(ctx.Request().Context(), param)
@@ -39,7 +39,7 @@ func (ctl Controller) {{$Enum.RestName}}(ctx iris.Context) {
 	var param {{$Enum.Param}}
 	err := ctx.ReadJSON(&param)
 	if err != nil {
-		WriteResp(ctx, nil, service.ParamInvalid.WithErr(err))
+		controller.WriteResp(ctx, nil, service.ParamInvalid.WithErr(err))
 		return
 	}
 	data, errno := ctl.service.{{$Enum.RestName}}(ctx.Request().Context(), param)
