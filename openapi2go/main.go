@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	url2 "net/url"
+	"strings"
 )
 
 func main() {
@@ -38,14 +39,28 @@ func main() {
 			return
 		}
 
-		content, err := genParams(request.Url)
+		swagger, err := getSwagger(request.Url)
+		if err != nil {
+			w.Write([]byte(err.Error()))
+			return
+		}
+
+		fileName := getFileName(swagger.Paths)
+
+		content, err := genParams(swagger)
+		if err != nil {
+			w.Write([]byte(err.Error()))
+			return
+		}
+		data := map[string]string{"fileName": fileName, "content": content}
+		resp, err := json.Marshal(data)
 		if err != nil {
 			w.Write([]byte(err.Error()))
 			return
 		}
 
 		w.WriteHeader(http.StatusOK)
-		if _, err = w.Write([]byte(content)); err != nil {
+		if _, err = w.Write(resp); err != nil {
 			panic(err)
 		}
 		fmt.Println("finished!")
@@ -59,16 +74,20 @@ func main() {
 
 }
 
-func genParams(url string) (string, error) {
+func getSwagger(url string) (*openapi3.T, error) {
 	loader := openapi3.NewLoader()
 	path, err := url2.Parse(url)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	swagger, err := loader.LoadFromURI(path)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
+	return swagger, nil
+}
+
+func genParams(swagger *openapi3.T) (string, error) {
 	// no pointer
 	for _, v := range swagger.Components.Schemas {
 		for _, p := range v.Value.Properties {
@@ -137,5 +156,18 @@ func genParams(url string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error generating code: %w", err)
 	}
+	code = strings.ReplaceAll(code, "Id", "ID")
 	return code, nil
+}
+
+func getFileName(paths openapi3.Paths) string {
+	for k := range paths {
+		sps := strings.Split(k, "/")
+		for _, sp := range sps {
+			if sp != "" {
+				return sp
+			}
+		}
+	}
+	return ""
 }

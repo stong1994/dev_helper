@@ -11,10 +11,11 @@
     <div class="container">
         <div class="left-section">
             <textarea v-model="userInput" placeholder="Enter your input"></textarea>
+            <p v-if="fileName">文件名称：{{ fileName }}</p>
         </div>
         <div class="right-section">
-            <pre >{{ generateContent }}</pre>
             <button v-if="generateContent" @click="copyToClipboard">Copy to Clipboard</button>
+            <pre >{{ generateContent }}</pre>
         </div>
     </div>
 </div>
@@ -24,6 +25,7 @@
         data: {
             userInput: '',
             generateContent: '',
+            fileName: '',
         },
         watch: {
             userInput: {
@@ -45,8 +47,9 @@
                         body: JSON.stringify(requestBody),
                     });
                     if (response.ok) {
-                        const data = await response.text();
-                        this.generateContent = data;
+                        const data = await response.json();
+                        this.generateContent = data.content;
+                        this.fileName = data.fileName;
                     } else {
                         throw new Error('API request failed');
                     }
