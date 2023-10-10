@@ -12,10 +12,12 @@
         <div class="left-section">
             <textarea v-model="userInput" placeholder="Enter your input"></textarea>
             <p v-if="fileName">文件名称：{{ fileName }}</p>
+            <button @click="callApi('dto')">生成dto</button> <!-- Add a button to call the API -->
+            <button @click="callApi('serviceModule')">生成service模块</button> <!-- Add a button to call the API -->
         </div>
         <div class="right-section">
             <button v-if="generateContent" @click="copyToClipboard">Copy to Clipboard</button>
-            <pre >{{ generateContent }}</pre>
+            <pre>{{ generateContent }}</pre>
         </div>
     </div>
 </div>
@@ -27,16 +29,11 @@
             generateContent: '',
             fileName: '',
         },
-        watch: {
-            userInput: {
-                handler: 'callApi',
-                immediate: true,
-            },
-        },
         methods: {
-            async callApi() {
+            async callApi(type) {
                 const requestBody = {
                     url: this.userInput,
+                    type: type,
                 };
                 try {
                     const response = await fetch('/gen_param', {

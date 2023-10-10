@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/deepmap/oapi-codegen/pkg/codegen"
@@ -9,7 +11,10 @@ import (
 	"log"
 	"net/http"
 	url2 "net/url"
+	"regexp"
 	"strings"
+	"text/template"
+	"unicode"
 )
 
 func main() {
@@ -26,7 +31,8 @@ func main() {
 		fmt.Println(string(bytes))
 
 		type genParam struct {
-			Url string `json:"url"`
+			Url  string `json:"url"`
+			Type string `json:"type"`
 		}
 		var request genParam
 		if err = json.Unmarshal(bytes, &request); err != nil {
@@ -46,12 +52,23 @@ func main() {
 		}
 
 		fileName := getFileName(swagger.Paths)
+		var content string
 
-		content, err := genParams(swagger)
-		if err != nil {
-			w.Write([]byte(err.Error()))
-			return
+		switch request.Type {
+		case "dto":
+			content, err = genParams(swagger)
+			if err != nil {
+				w.Write([]byte(err.Error()))
+				return
+			}
+		case "serviceModule":
+			content, err = genServiceModule(swagger)
+			if err != nil {
+				w.Write([]byte(err.Error()))
+				return
+			}
 		}
+
 		data := map[string]string{"fileName": fileName, "content": content}
 		resp, err := json.Marshal(data)
 		if err != nil {
@@ -108,54 +125,20 @@ func genParams(swagger *openapi3.T) (string, error) {
 			}
 		}
 	}
-	//for _, v := range swagger.Paths {
-	//	if v.Post != nil {
-	//		for _, vv := range v.Post.RequestBody.Value.Content {
-	//			vv.Schema.Ref, err = url2.QueryUnescape(vv.Schema.Ref)
-	//			if err != nil {
-	//				return "", fmt.Errorf("unescape failed: %w", err)
-	//			}
-	//		}
-	//	}
-	//	if v.Get != nil {
-	//		for _, vv := range v.Get.Responses {
-	//			for _, vvv := range vv.Value.Content {
-	//				for _, vvvv := range vvv.Schema.Value.Properties {
-	//					vvvv.Ref, err = url2.QueryUnescape(vvvv.Ref)
-	//					if err != nil {
-	//						return "", fmt.Errorf("unescape failed: %w", err)
-	//					}
-	//
-	//				}
-	//			}
-	//		}
-	//	}
-	//
-	//}
-	//
-	//for i, v := range swagger.Components.Schemas {
-	//
-	//}
+
 	code, err := codegen.Generate(swagger, codegen.Configuration{
 		PackageName: "dto",
 		Generate: codegen.GenerateOptions{
 			Models: true,
 		},
-		Compatibility: codegen.CompatibilityOptions{
-			OldMergeSchemas:                    false,
-			OldEnumConflicts:                   false,
-			OldAliasing:                        false,
-			DisableFlattenAdditionalProperties: false,
-			DisableRequiredReadOnlyAsPointer:   true,
-			AlwaysPrefixEnumValues:             false,
-			ApplyChiMiddlewareFirstToLast:      false,
-			ApplyGorillaMiddlewareFirstToLast:  false,
-			CircularReferenceLimit:             0,
-		},
 	})
 	if err != nil {
 		return "", fmt.Errorf("error generating code: %w", err)
 	}
+
+	code += `
+type PagenationResponse interface{}
+`
 	code = strings.ReplaceAll(code, "Id", "ID")
 	return code, nil
 }
@@ -170,4 +153,267 @@ func getFileName(paths openapi3.Paths) string {
 		}
 	}
 	return ""
+}
+
+type ServiceModuleAPI struct {
+	RestName string
+	Param    string
+	Resp     string
+}
+
+type ServiceModuleGen struct {
+	API             []ServiceModuleAPI
+	ModuleName      string
+	ProjectName     string
+	BpProjectName   string
+	ModuleNameSnake string
+}
+
+func genServiceModule(swagger *openapi3.T) (string, error) {
+	tmpl := "template/service_module.tmpl"
+
+	tl := template.New(tmpl)
+	data, err := codegen.GetUserTemplateText(tmpl)
+	if err != nil {
+		return "", err
+	}
+
+	tl, err = tl.Parse(data)
+	if err != nil {
+		return "", err
+	}
+
+	firstPath := swagger.Paths.InMatchingOrder()[0]
+	gen := ServiceModuleGen{
+		ModuleName:      getModuleName(firstPath),
+		ProjectName:     "eebo.ehr.metabase",
+		ModuleNameSnake: getModuleNameSnake(firstPath),
+		BpProjectName:   "BpMetabase",
+	}
+
+	for _, url := range swagger.Paths.InMatchingOrder() {
+		param, err := GetRequestParamTypeNameBySchema(url, swagger.Paths[url])
+		if err != nil {
+			return "", err
+		}
+		resp, err := GetRespTypeNameBySchema(url, swagger.Paths[url])
+		if err != nil {
+			return "", err
+		}
+		gen.API = append(gen.API, ServiceModuleAPI{
+			RestName: getRestName(url),
+			//Param: codegen.GenerateTypesForSchemas(),
+			Param: param,
+			Resp:  resp,
+		})
+	}
+
+	var buf bytes.Buffer
+	w := bufio.NewWriter(&buf)
+	err = tl.Execute(w, gen)
+	if err != nil {
+		return "", err
+	}
+	w.Flush()
+	return buf.String(), nil
+}
+
+func getModuleName(url string) string {
+	sps := strings.Split(url, "/")
+	target := sps[0]
+	if len(sps) >= 2 {
+		target = sps[len(sps)-2]
+	}
+	return convertToCamelCase(target)
+}
+
+func getModuleNameSnake(url string) string {
+	sps := strings.Split(url, "/")
+	target := sps[0]
+	if len(sps) >= 2 {
+		target = sps[len(sps)-2]
+	}
+	return target
+}
+
+func getRestName(url string) string {
+	sps := strings.Split(url, "/")
+	// 取最后两个
+	if len(sps) >= 2 {
+		sps = sps[len(sps)-2:]
+	}
+	for i := 0; i < len(sps)/2; i++ {
+		sps[i], sps[len(sps)-i-1] = sps[len(sps)-i-1], sps[i]
+	}
+	return convertToCamelCase(strings.Join(sps, "_"))
+}
+
+func convertToCamelCase(word string) string {
+	if !strings.Contains(word, "_") {
+		var s []rune
+		for _, c := range word {
+			if len(s) == 0 {
+				s = append(s, unicode.ToUpper(c))
+			} else {
+				s = append(s, c)
+			}
+		}
+		return string(s)
+	}
+	words := strings.Split(word, "_")
+	var rst string
+	for _, w := range words {
+		rst += convertToCamelCase(w)
+	}
+	return rst
+}
+
+func GetRequestParamTypeNameBySchema(url string, path *openapi3.PathItem) (string, error) {
+	if path.Post != nil {
+		name, err := generateDefaultOperationID("POST", url, ToCamelCase)
+		if err != nil {
+			return "", err
+		}
+		return name + "JSONRequestBody", nil
+	}
+	name, err := generateDefaultOperationID("GET", url, ToCamelCase)
+	if err != nil {
+		return "", err
+	}
+	return name + "Params", nil
+}
+
+func getTypeNameBySchema(url string, path *openapi3.PathItem) (string, error) {
+	if path.Post != nil {
+		return generateDefaultOperationID("POST", url, ToCamelCase)
+	}
+	return generateDefaultOperationID("GET", url, ToCamelCase)
+}
+
+func generateDefaultOperationID(opName string, requestPath string, toCamelCaseFunc func(string) string) (string, error) {
+	var operationId = strings.ToLower(opName)
+
+	if opName == "" {
+		return "", fmt.Errorf("operation name cannot be an empty string")
+	}
+
+	if requestPath == "" {
+		return "", fmt.Errorf("request path cannot be an empty string")
+	}
+
+	for _, part := range strings.Split(requestPath, "/") {
+		if part != "" {
+			operationId = operationId + "-" + part
+		}
+	}
+
+	return toCamelCaseFunc(operationId), nil
+}
+
+func ToCamelCase(str string) string {
+	s := strings.Trim(str, " ")
+
+	n := ""
+	capNext := true
+	for _, v := range s {
+		if unicode.IsUpper(v) {
+			n += string(v)
+		}
+		if unicode.IsDigit(v) {
+			n += string(v)
+		}
+		if unicode.IsLower(v) {
+			if capNext {
+				n += strings.ToUpper(string(v))
+			} else {
+				n += string(v)
+			}
+		}
+		_, capNext = separatorSet[v]
+	}
+	return n
+}
+
+func GetRespTypeNameBySchema(url string, path *openapi3.PathItem) (string, error) {
+	if path.Post != nil {
+		name, err := generateDefaultOperationID("POST", url, ToCamelCase)
+		if err != nil {
+			return "", err
+		}
+		return "dto." + name + "JSONBody", nil
+	}
+	//name, err := generateDefaultOperationID("GET", url, ToCamelCase)
+	//if err != nil {
+	//	return "", err
+	//}
+	if strings.HasSuffix(url, "/get") {
+		return "dto." + getModuleName(url) + "View", nil
+	}
+	return "dto.PagenationResponse", nil
+}
+
+var (
+	pathParamRE    *regexp.Regexp
+	predeclaredSet map[string]struct{}
+	separatorSet   map[rune]struct{}
+)
+
+func init() {
+	pathParamRE = regexp.MustCompile(`{[.;?]?([^{}*]+)\*?}`)
+
+	predeclaredIdentifiers := []string{
+		// Types
+		"bool",
+		"byte",
+		"complex64",
+		"complex128",
+		"error",
+		"float32",
+		"float64",
+		"int",
+		"int8",
+		"int16",
+		"int32",
+		"int64",
+		"rune",
+		"string",
+		"uint",
+		"uint8",
+		"uint16",
+		"uint32",
+		"uint64",
+		"uintptr",
+		// Constants
+		"true",
+		"false",
+		"iota",
+		// Zero value
+		"nil",
+		// Functions
+		"append",
+		"cap",
+		"close",
+		"complex",
+		"copy",
+		"delete",
+		"imag",
+		"len",
+		"make",
+		"new",
+		"panic",
+		"print",
+		"println",
+		"real",
+		"recover",
+	}
+	predeclaredSet = map[string]struct{}{}
+	for _, id := range predeclaredIdentifiers {
+		predeclaredSet[id] = struct{}{}
+	}
+
+	separators := "-#@!$&=.+:;_~ (){}[]"
+	separatorSet = map[rune]struct{}{}
+	for _, r := range separators {
+		separatorSet[r] = struct{}{}
+	}
 }

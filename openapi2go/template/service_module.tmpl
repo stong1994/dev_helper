@@ -1,0 +1,40 @@
+package {{.ModuleNameSnake}}
+
+import (
+    "context"
+    "{{.ProjectName}}/service"
+    "{{.ProjectName}}/service/entity/dto"
+)
+
+
+type Base{{.ModuleName}} interface{
+{{range $Enum := .API}}
+    {{$Enum.RestName}}(ctx context.Context, param dto.{{$Enum.Param}}) ({{$Enum.Resp}}, error)
+{{end}}
+}
+
+type Service struct {
+	adaptor Base{{.ModuleName}}
+}
+
+func NewService(adaptor Base{{.ModuleName}}) *Service {
+	return &Service{
+		adaptor: adaptor,
+	}
+}
+
+{{range $Enum := .API}}
+func (s Service) {{$Enum.RestName}}(ctx context.Context, param dto.{{$Enum.Param}}) ({{$Enum.Resp}}, service.Errno) {
+
+	data, err := s.adaptor.{{$Enum.RestName}}(ctx, param)
+	if err != nil {
+	    {{if eq $Enum.Resp "dto.PagenationResponse{}"}}
+	        return nil, service.{{$.BpProjectName}}AccessErr.WithErr(err)
+        {{else}}
+            return {{$Enum.Resp}}{}, service.{{$.BpProjectName}}AccessErr.WithErr(err)
+	    {{end}}
+	}
+
+	return data, service.OK
+}
+{{end}}
