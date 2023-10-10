@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horizontal Segmentation</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+<div id="app">
+    <div class="container">
+        <div class="left-section">
+            <textarea v-model="userInput" placeholder="Enter your input"></textarea>
+        </div>
+        <div class="right-section">
+            <pre >{{ generateContent }}</pre>
+            <button v-if="generateContent" @click="copyToClipboard">Copy to Clipboard</button>
+        </div>
+    </div>
+</div>
+<script>
+    new Vue({
+        el: '#app',
+        data: {
+            userInput: '',
+            generateContent: '',
+        },
+        watch: {
+            userInput: {
+                handler: 'callApi',
+                immediate: true,
+            },
+        },
+        methods: {
+            async callApi() {
+                const requestBody = {
+                    url: this.userInput,
+                };
+                try {
+                    const response = await fetch('/gen_param', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(requestBody),
+                    });
+                    if (response.ok) {
+                        const data = await response.text();
+                        this.generateContent = data;
+                    } else {
+                        throw new Error('API request failed');
+                    }
+                } catch (error) {
+                    console.error(error);
+                    this.generateContent = `Generated content failed: ${error}`;
+                }
+            },
+            async copyToClipboard() {
+                try {
+                    await navigator.clipboard.writeText(this.generateContent);
+                    alert('Content copied to clipboard!');
+                } catch (error) {
+                    console.error(error);
+                    alert('Failed to copy content to clipboard.');
+                }
+            },
+        },
+    });
+</script>
+<style>
+    .container {
+        display: flex;
+    }
+    .left-section {
+        flex: 1;
+        padding: 20px;
+        background-color: #f2f2f2;
+    }
+    .right-section {
+        flex: 1;
+        padding: 20px;
+        background-color: #e0e0e0;
+    }
+    textarea {
+        width: 100%;
+        height: 300px;
+    }
+    pre {
+        white-space: pre-wrap;
+    }
+</style>
+</body>
+</html>
