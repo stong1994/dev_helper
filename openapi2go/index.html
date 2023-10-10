@@ -17,6 +17,7 @@
             <button @click="callApi('adaptorModule')">生成adaptor模块</button> <!-- Add a button to call the API -->
             <button @click="callApi('routerModule')">生成router模块</button> <!-- Add a button to call the API -->
             <button @click="callApi('controllerModule')">生成controller模块</button> <!-- Add a button to call the API -->
+            <button @click="callApi('permCode')">生成权限模块</button> <!-- Add a button to call the API -->
         </div>
         <div class="right-section">
             <button v-if="generateContent" @click="copyToClipboard">Copy to Clipboard</button>

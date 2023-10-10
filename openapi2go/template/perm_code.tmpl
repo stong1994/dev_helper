@@ -1,0 +1,7 @@
+{{range $Enum := .API}}
+{{if $Enum.Get}}
+PermCode{{$.ModuleName}}View
+{{else}}
+PermCode{{$.ModuleName}}Edit
+{{end}}
+{{end}}
