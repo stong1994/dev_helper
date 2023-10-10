@@ -57,22 +57,16 @@ func main() {
 		switch request.Type {
 		case "dto":
 			content, err = genParams(swagger)
-			if err != nil {
-				w.Write([]byte(err.Error()))
-				return
-			}
 		case "serviceModule":
 			content, err = genServiceModule(swagger)
-			if err != nil {
-				w.Write([]byte(err.Error()))
-				return
-			}
 		case "adaptorModule":
 			content, err = genAdapterModule(swagger)
-			if err != nil {
-				w.Write([]byte(err.Error()))
-				return
-			}
+		case "routerModule":
+			content, err = genRouterModule(swagger)
+		}
+		if err != nil {
+			w.Write([]byte(err.Error()))
+			return
 		}
 
 		data := map[string]string{"fileName": fileName, "content": content}
@@ -161,6 +155,19 @@ func getFileName(paths openapi3.Paths) string {
 	return ""
 }
 
+type RouterModuleAPI struct {
+	RestName string
+	Path     string
+	Get      bool
+}
+
+type RouterModuleGen struct {
+	API             []RouterModuleAPI
+	ModuleName      string
+	ProjectName     string
+	ModuleNameSnake string
+}
+
 type ServiceModuleAPI struct {
 	RestName string
 	Param    string
@@ -189,6 +196,46 @@ type AdapterModuleGen struct {
 	ProjectName     string
 	BpProjectName   string
 	ModuleNameSnake string
+}
+
+func genRouterModule(swagger *openapi3.T) (string, error) {
+	tmpl := "template/router_module.tmpl"
+
+	tl := template.New(tmpl)
+	data, err := codegen.GetUserTemplateText(tmpl)
+	if err != nil {
+		return "", err
+	}
+
+	tl, err = tl.Parse(data)
+	if err != nil {
+		return "", err
+	}
+
+	firstPath := swagger.Paths.InMatchingOrder()[0]
+	gen := RouterModuleGen{
+		ModuleName:      getModuleName(firstPath),
+		ProjectName:     "eebo.ehr.metabase",
+		ModuleNameSnake: getModuleNameSnake(firstPath),
+	}
+
+	for _, url := range swagger.Paths.InMatchingOrder() {
+		gen.API = append(gen.API, RouterModuleAPI{
+			RestName: getRestName(url),
+			Get:      swagger.Paths[url].Get != nil,
+			Path:     url,
+			//Param: codegen.GenerateTypesForSchemas(),
+		})
+	}
+
+	var buf bytes.Buffer
+	w := bufio.NewWriter(&buf)
+	err = tl.Execute(w, gen)
+	if err != nil {
+		return "", err
+	}
+	w.Flush()
+	return buf.String(), nil
 }
 
 func genServiceModule(swagger *openapi3.T) (string, error) {
