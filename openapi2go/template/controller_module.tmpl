@@ -1,0 +1,49 @@
+package {{.ModuleNameSnake}}
+
+import (
+    "{{.ProjectName}}/controller"
+    "{{.ProjectName}}/service/{{.ModuleNameSnake}}"
+    "{{.ProjectName}}/service/entity/dto"
+)
+
+type Controller struct {
+	service *{{.ModuleNameSnake}}.Service
+}
+
+func New{{.ModuleName}}Controller(service *{{.ModuleNameSnake}}.Service) *Controller {
+	return &Controller{
+		service: service,
+	}
+}
+
+{{range $Enum := .API}}
+{{if $Enum.Get}}
+func (ctl Controller) {{$Enum.RestName}}(ctx iris.Context) {
+    if !controller.CheckPermission(ctx, controller.PermCode{{$.ModuleName}}View) {
+        return
+    }
+	var param {{$Enum.Param}}
+	err := ctx.ReadQuery(&param)
+	if err != nil {
+		WriteResp(ctx, nil, service.ParamInvalid.WithErr(err))
+		return
+	}
+	data, errno := ctl.service.{{$Enum.RestName}}(ctx.Request().Context(), param)
+    controller.WriteResp(ctx, data, errno)
+}
+{{else}}
+func (ctl Controller) {{$Enum.RestName}}(ctx iris.Context) {
+    if !controller.CheckPermission(ctx, controller.PermCode{{$.ModuleName}}Edit) {
+        return
+    }
+	var param {{$Enum.Param}}
+	err := ctx.ReadJSON(&param)
+	if err != nil {
+		WriteResp(ctx, nil, service.ParamInvalid.WithErr(err))
+		return
+	}
+	data, errno := ctl.service.{{$Enum.RestName}}(ctx.Request().Context(), param)
+    controller.WriteResp(ctx, data, errno)
+}
+{{end}}
+{{end}}

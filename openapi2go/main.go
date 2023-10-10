@@ -63,6 +63,8 @@ func main() {
 			content, err = genAdapterModule(swagger)
 		case "routerModule":
 			content, err = genRouterModule(swagger)
+		case "controllerModule":
+			content, err = genControllerModule(swagger)
 		}
 		if err != nil {
 			w.Write([]byte(err.Error()))
@@ -168,6 +170,19 @@ type RouterModuleGen struct {
 	ModuleNameSnake string
 }
 
+type ControllerModuleAPI struct {
+	RestName string
+	Param    string
+	Get      bool
+}
+
+type ControllerModuleGen struct {
+	API             []ControllerModuleAPI
+	ModuleName      string
+	ProjectName     string
+	ModuleNameSnake string
+}
+
 type ServiceModuleAPI struct {
 	RestName string
 	Param    string
@@ -225,6 +240,50 @@ func genRouterModule(swagger *openapi3.T) (string, error) {
 			Get:      swagger.Paths[url].Get != nil,
 			Path:     url,
 			//Param: codegen.GenerateTypesForSchemas(),
+		})
+	}
+
+	var buf bytes.Buffer
+	w := bufio.NewWriter(&buf)
+	err = tl.Execute(w, gen)
+	if err != nil {
+		return "", err
+	}
+	w.Flush()
+	return buf.String(), nil
+}
+
+func genControllerModule(swagger *openapi3.T) (string, error) {
+	tmpl := "template/controller_module.tmpl"
+
+	tl := template.New(tmpl)
+	data, err := codegen.GetUserTemplateText(tmpl)
+	if err != nil {
+		return "", err
+	}
+
+	tl, err = tl.Parse(data)
+	if err != nil {
+		return "", err
+	}
+
+	firstPath := swagger.Paths.InMatchingOrder()[0]
+	gen := ControllerModuleGen{
+		ModuleName:      getModuleName(firstPath),
+		ProjectName:     "eebo.ehr.metabase",
+		ModuleNameSnake: getModuleNameSnake(firstPath),
+	}
+
+	for _, url := range swagger.Paths.InMatchingOrder() {
+		param, err := GetRequestParamTypeNameBySchema(url, swagger.Paths[url])
+		if err != nil {
+			return "", err
+		}
+		gen.API = append(gen.API, ControllerModuleAPI{
+			RestName: getRestName(url),
+			Get:      swagger.Paths[url].Get != nil,
+			//Param: codegen.GenerateTypesForSchemas(),
+			Param: param,
 		})
 	}
 
