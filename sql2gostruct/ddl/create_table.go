@@ -124,7 +124,7 @@ func parseColumnName(name string) string {
 }
 
 func parseMysqlTypeCus(col Column) string {
-	if strings.HasPrefix(parseColumnName(col.Name), "is_") {
+	if strings.HasPrefix(parseColumnName(col.Name), "Is") {
 		return "bool"
 	}
 	return parseMysqlType(col.Type)
