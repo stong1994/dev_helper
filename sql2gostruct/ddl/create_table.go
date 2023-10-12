@@ -105,7 +105,7 @@ func getColumns(columns []Column) string {
 
 // 返回值eg: ID    string    gorm:"column:c_id"
 func getColumn(column Column) [4]string {
-	return [4]string{parseColumnName(column.Name), parseMysqlType(column.Type), getDBFieldName(column.Name), getFieldComment(column.Comment)}
+	return [4]string{parseColumnName(column.Name), parseMysqlTypeCus(column), getDBFieldName(column.Name), getFieldComment(column.Comment)}
 }
 
 func getFieldComment(comment string) string {
@@ -121,6 +121,13 @@ func parseColumnName(name string) string {
 	}
 	name = strings.ReplaceAll(name, "id", "ID")
 	return convertToCamelCase(name)
+}
+
+func parseMysqlTypeCus(col Column) string {
+	if strings.HasPrefix(parseColumnName(col.Name), "is_") {
+		return "bool"
+	}
+	return parseMysqlType(col.Type)
 }
 
 // https://zontroy.com/mysql-to-go-type-mapping/
