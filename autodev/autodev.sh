@@ -40,13 +40,31 @@ case "$TARGET_BRANCH" in
 esac
 VERSION=${2:-$VERSION}
 
-# Check if the feature branch is valid
-if [[ "$FEATURE_BRANCH" == "$TARGET_BRANCH" || "$FEATURE_BRANCH" == "dev" || "$FEATURE_BRANCH" == "test" || "$FEATURE_BRANCH" == "pd" ]]; then
-    handle_error "Cannot run deploy on dev, test, or pd branch."
-fi
+function package() {
+    DIR_NAME=$(basename "$(pwd)")
+    TAG=$( sh release.sh -v "$VERSION" | grep -o "TAG='[^']*'" | awk -F"'" '{print $2}' | head -n 1)
+    if [ "$TAG" = "" ]; then
+        handle_error "Failed to create package."
+    fi
+
+    echo "================================================================================"
+    echo "Please copy the following content and provide it to the deployment team"
+    echo "Service: $DIR_NAME, Tag: $TAG"
+    echo "================================================================================"
+}
 
 # Print current branch
 echo "Current branch is $FEATURE_BRANCH"
+
+# Check if the feature branch is valid
+#if [[ "$FEATURE_BRANCH" == "$TARGET_BRANCH" || "$FEATURE_BRANCH" == "dev" || "$FEATURE_BRANCH" == "test" || "$FEATURE_BRANCH" == "pd" ]]; then
+#    handle_error "Cannot run deploy on dev, test, or pd branch."
+#fi
+if [[ "$FEATURE_BRANCH" == "$TARGET_BRANCH" || "$FEATURE_BRANCH" == "dev" || "$FEATURE_BRANCH" == "test" || "$FEATURE_BRANCH" == "pd" ]]; then
+    package
+    exit 1
+fi
+
 
 # Save original branch
 ORIGINAL_BRANCH=$(git rev-parse --abbrev-ref HEAD)
@@ -67,16 +85,7 @@ git merge --no-edit "$FEATURE_BRANCH" || handle_error "Failed to merge $FEATURE_
 git push origin "$TARGET_BRANCH" || handle_error "Failed to push changes to $TARGET_BRANCH."
 
 # Create package
-DIR_NAME=$(basename "$(pwd)")
-TAG=$( sh release.sh -v "$VERSION" | grep -o "TAG='[^']*'" | awk -F"'" '{print $2}' | head -n 1) 
-if [ "$TAG" = "" ]; then
-    handle_error "Failed to create package."
-fi
-
-echo "================================================================================"
-echo "Please copy the following content and provide it to the deployment team"
-echo "Service: $DIR_NAME, Tag: $TAG"
-echo "================================================================================"
+package
 
 # Switch back to original branch
 git checkout "$ORIGINAL_BRANCH" || handle_error "Failed to switch back to the original branch."
