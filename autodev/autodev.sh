@@ -62,7 +62,7 @@ echo "Current branch is $FEATURE_BRANCH"
 #fi
 if [[ "$FEATURE_BRANCH" == "$TARGET_BRANCH" || "$FEATURE_BRANCH" == "dev" || "$FEATURE_BRANCH" == "test" || "$FEATURE_BRANCH" == "pd" ]]; then
     package
-    exit 1
+    exit 0
 fi
 
 
