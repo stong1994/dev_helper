@@ -12,6 +12,7 @@ function show_help {
     echo ""
     echo "Options:"
     echo "  -h, --help    Show this help message and exit."
+    echo "  -v, --version    Show version."
 }
 
 # Function to handle errors and checkout back to original branch
@@ -24,6 +25,11 @@ function handle_error {
 # Check if help is requested
 if [[ "$1" == "-h" || "$1" == "--help" ]]; then
     show_help
+    exit 0
+fi
+
+if [[ "$1" == "-v" || "$1" == "--version" ]]; then
+    echo "1.0.1"
     exit 0
 fi
 
@@ -60,7 +66,8 @@ echo "Current branch is $FEATURE_BRANCH"
 #if [[ "$FEATURE_BRANCH" == "$TARGET_BRANCH" || "$FEATURE_BRANCH" == "dev" || "$FEATURE_BRANCH" == "test" || "$FEATURE_BRANCH" == "pd" ]]; then
 #    handle_error "Cannot run deploy on dev, test, or pd branch."
 #fi
-if [[ "$FEATURE_BRANCH" == "$TARGET_BRANCH" || "$FEATURE_BRANCH" == "dev" || "$FEATURE_BRANCH" == "test" || "$FEATURE_BRANCH" == "pd" ]]; then
+#if [[ "$FEATURE_BRANCH" == "$TARGET_BRANCH" || "$FEATURE_BRANCH" == "dev" || "$FEATURE_BRANCH" == "test" || "$FEATURE_BRANCH" == "pd" ]]; then
+if [[ "$FEATURE_BRANCH" == "$TARGET_BRANCH" || "$TARGET_BRANCH" == "dev" ]]; then
     package
     exit 0
 fi
