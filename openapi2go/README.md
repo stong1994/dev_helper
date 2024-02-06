@@ -69,7 +69,7 @@ func New{{ModuleName}}Controller(services *service.Services) *Controller {
 如果是POST方法，则使用模版：
 ```go
 func (ctl Controller) {{RestName}}(ctx iris.Context) {
-    if !controller.CheckPermission(ctx, consts.PermCode{{ModuleName}}Edit) {
+    if !perm.CheckPermission(ctx, consts.PermCode{{ModuleName}}Edit) {
         return
     }
 	var param dto.{{RestName}}Req
@@ -85,7 +85,7 @@ func (ctl Controller) {{RestName}}(ctx iris.Context) {
 如果是GET方法，则使用模版：
 ```go
 func (ctl Controller) {{RestName}}(ctx iris.Context) {
-    if !controller.CheckPermission(ctx, consts.PermCode{{ModuleName}}View) {
+    if !perm.CheckPermission(ctx, consts.PermCode{{ModuleName}}View) {
         return
     }
 	var param dto.{{RestName}}Req

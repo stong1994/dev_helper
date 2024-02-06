@@ -2,6 +2,7 @@ package {{.ModuleNameSnake}}
 
 import (
     "{{.ProjectName}}/controller"
+    "{{.ProjectName}}/controller/perm"
     "{{.ProjectName}}/service/{{.ModuleNameSnake}}"
     "{{.ProjectName}}/service/entity/dto"
 )
@@ -19,7 +20,7 @@ func New{{.ModuleName}}Controller(service *{{.ModuleNameSnake}}.Service) Control
 {{range $Enum := .API}}
 {{if $Enum.Get}}
 func (ctl Controller) {{$Enum.RestName}}(ctx iris.Context) {
-    if !controller.CheckPermission(ctx, controller.PermCode{{$.ModuleName}}View) {
+    if !perm.CheckPermission(ctx, perm.PermCode{{$.ModuleName}}View) {
         return
     }
 	var param {{$Enum.Param}}
@@ -33,7 +34,7 @@ func (ctl Controller) {{$Enum.RestName}}(ctx iris.Context) {
 }
 {{else}}
 func (ctl Controller) {{$Enum.RestName}}(ctx iris.Context) {
-    if !controller.CheckPermission(ctx, controller.PermCode{{$.ModuleName}}Edit) {
+    if !perm.CheckPermission(ctx, perm.PermCode{{$.ModuleName}}Edit) {
         return
     }
 	var param {{$Enum.Param}}

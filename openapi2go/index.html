@@ -18,6 +18,9 @@
             <button @click="callApi('routerModule')">生成router模块</button> <!-- Add a button to call the API -->
             <button @click="callApi('controllerModule')">生成controller模块</button> <!-- Add a button to call the API -->
             <button @click="callApi('permCode')">生成权限模块</button> <!-- Add a button to call the API -->
+            <p></p>
+            <input v-model="projectName" placeholder="project name">
+            <input v-model="visitProjectName" placeholder="visit project's name">
         </div>
         <div class="right-section">
             <button v-if="generateContent" @click="copyToClipboard">Copy to Clipboard</button>
@@ -32,12 +35,16 @@
             userInput: '',
             generateContent: '',
             fileName: '',
+            projectName: '',
+            visitProjectName: '',
         },
         methods: {
             async callApi(type) {
                 const requestBody = {
                     url: this.userInput,
                     type: type,
+                    projectName: this.projectName,
+                    visitProjectName: this.visitProjectName
                 };
                 try {
                     const response = await fetch('/gen_param', {

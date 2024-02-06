@@ -5,8 +5,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/deepmap/oapi-codegen/pkg/codegen"
-	"github.com/getkin/kin-openapi/openapi3"
 	"io"
 	"log"
 	"net/http"
@@ -15,6 +13,9 @@ import (
 	"strings"
 	"text/template"
 	"unicode"
+
+	"github.com/deepmap/oapi-codegen/pkg/codegen"
+	"github.com/getkin/kin-openapi/openapi3"
 )
 
 func main() {
@@ -31,8 +32,10 @@ func main() {
 		fmt.Println(string(bytes))
 
 		type genParam struct {
-			Url  string `json:"url"`
-			Type string `json:"type"`
+			Url              string `json:"url"`
+			Type             string `json:"type"`
+			ProjectName      string `json:"projectName"`
+			VisitProjectName string `json:"visitProjectName"`
 		}
 		var request genParam
 		if err = json.Unmarshal(bytes, &request); err != nil {
@@ -58,13 +61,13 @@ func main() {
 		case "dto":
 			content, err = genParams(swagger)
 		case "serviceModule":
-			content, err = genServiceModule(swagger)
+			content, err = genServiceModule(swagger, request.ProjectName, request.VisitProjectName)
 		case "adaptorModule":
-			content, err = genAdapterModule(swagger)
+			content, err = genAdapterModule(swagger, request.ProjectName, request.VisitProjectName)
 		case "routerModule":
-			content, err = genRouterModule(swagger)
+			content, err = genRouterModule(swagger, request.ProjectName)
 		case "controllerModule":
-			content, err = genControllerModule(swagger)
+			content, err = genControllerModule(swagger, request.ProjectName)
 		case "permCode":
 			content, err = genPermCodeModule(swagger)
 		}
@@ -216,7 +219,7 @@ type AdapterModuleGen struct {
 	ModuleNameSnake string
 }
 
-func genRouterModule(swagger *openapi3.T) (string, error) {
+func genRouterModule(swagger *openapi3.T, projectName string) (string, error) {
 	tmpl := "template/router_module.tmpl"
 
 	tl := template.New(tmpl)
@@ -233,7 +236,7 @@ func genRouterModule(swagger *openapi3.T) (string, error) {
 	firstPath := swagger.Paths.InMatchingOrder()[0]
 	gen := RouterModuleGen{
 		ModuleName:      getModuleName(firstPath),
-		ProjectName:     "eebo.ehr.metabase",
+		ProjectName:     projectName,
 		ModuleNameSnake: getModuleNameSnake(firstPath),
 	}
 
@@ -276,7 +279,7 @@ func genPermCodeModule(swagger *openapi3.T) (string, error) {
 PermCode%sEdit`, module, module), nil
 }
 
-func genControllerModule(swagger *openapi3.T) (string, error) {
+func genControllerModule(swagger *openapi3.T, projectName string) (string, error) {
 	tmpl := "template/controller_module.tmpl"
 
 	tl := template.New(tmpl)
@@ -293,7 +296,7 @@ func genControllerModule(swagger *openapi3.T) (string, error) {
 	firstPath := swagger.Paths.InMatchingOrder()[0]
 	gen := ControllerModuleGen{
 		ModuleName:      getModuleName(firstPath),
-		ProjectName:     "eebo.ehr.metabase",
+		ProjectName:     projectName,
 		ModuleNameSnake: getModuleNameSnake(firstPath),
 	}
 
@@ -320,7 +323,7 @@ func genControllerModule(swagger *openapi3.T) (string, error) {
 	return buf.String(), nil
 }
 
-func genServiceModule(swagger *openapi3.T) (string, error) {
+func genServiceModule(swagger *openapi3.T, projectName, visitProjectName string) (string, error) {
 	tmpl := "template/service_module.tmpl"
 
 	tl := template.New(tmpl)
@@ -337,9 +340,9 @@ func genServiceModule(swagger *openapi3.T) (string, error) {
 	firstPath := swagger.Paths.InMatchingOrder()[0]
 	gen := ServiceModuleGen{
 		ModuleName:      getModuleName(firstPath),
-		ProjectName:     "eebo.ehr.metabase",
+		ProjectName:     projectName,
 		ModuleNameSnake: getModuleNameSnake(firstPath),
-		BpProjectName:   "BpMetabase",
+		BpProjectName:   visitProjectName,
 		Pagenation:      "dto.PagenationResponse",
 	}
 
@@ -370,7 +373,7 @@ func genServiceModule(swagger *openapi3.T) (string, error) {
 	return buf.String(), nil
 }
 
-func genAdapterModule(swagger *openapi3.T) (string, error) {
+func genAdapterModule(swagger *openapi3.T, projectName, visitProjectName string) (string, error) {
 	tmpl := "template/adapter_module.tmpl"
 
 	tl := template.New(tmpl)
@@ -387,9 +390,9 @@ func genAdapterModule(swagger *openapi3.T) (string, error) {
 	firstPath := swagger.Paths.InMatchingOrder()[0]
 	gen := AdapterModuleGen{
 		ModuleName:      getModuleName(firstPath),
-		ProjectName:     "eebo.ehr.metabase",
+		ProjectName:     projectName,
 		ModuleNameSnake: getModuleNameSnake(firstPath),
-		BpProjectName:   "BpMetabase",
+		BpProjectName:   visitProjectName,
 	}
 
 	for _, url := range swagger.Paths.InMatchingOrder() {

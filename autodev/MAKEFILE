@@ -1,0 +1,48 @@
+SHELL = /bin/bash -e
+
+# 当前功能分支
+FEATURE_BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
+# 版本号（产品提供）
+FEATURE_VERSION = 1.2.0
+
+.PHONY: deploy_dev deploy_test deploy_pd
+
+print_branch:
+    @echo "current branch is $(FEATURE_BRANCH)"
+
+check_branch:
+    @if [ "$(FEATURE_BRANCH)" == "dev" ] || \
+     [ "$(FEATURE_BRANCH)" == "test" ] || \
+     [ "$(FEATURE_BRANCH)" == "pd" ]; then \
+        echo "cannot run deploy on dev, test, or pd branch."; \
+        exit 1; \
+    fi
+
+package:
+    @DIR_NAME=$(shell basename `pwd`); \
+    TAG=$(shell sh release.sh -v $(FEATURE_VERSION) | grep "TAG" | awk -F"TAG='" '{print $$2}' | awk -F"'" '{print $$1}'); \
+    echo "================================================================================"; \
+    echo "请将以下内容copy至部署人员"; \
+    echo "服务: $$DIR_NAME , tag: $$TAG"; \
+    echo "================================================================================"
+
+deploy_dev: check_branch print_branch
+    git checkout dev
+    git merge --no-edit $(FEATURE_BRANCH)
+    git push origin dev
+    $(MAKE) package
+    git checkout -
+
+deploy_test: check_branch print_branch
+    git checkout test
+    git merge --no-edit $(FEATURE_BRANCH)
+    git push origin test
+    $(MAKE) package
+    git checkout -
+
+deploy_pd: check_branch print_branch
+    git checkout master
+    git merge --no-edit $(FEATURE_BRANCH)
+    git push origin master
+    $(MAKE) package
+    git checkout -
