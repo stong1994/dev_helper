@@ -7,4 +7,5 @@ open your project quickly!!!
     ```
     export ProjectRoots="/xxx/PersonalProject,/xxx/CompanyProject"
     ```
-2. `cargo run`
+2. `sudo make Makefile install`
+3. `op {keyword of project}`

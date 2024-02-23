@@ -70,10 +70,6 @@ fn find_projects(path: &PathBuf, matched: &str) -> Vec<PathBuf> {
         return matched_projects;
     }
     if is_project(&path) {
-        println!(
-            "judge project {}",
-            path.file_name().unwrap().to_str().unwrap()
-        );
         if path
             .file_name()
             .unwrap()
@@ -87,7 +83,6 @@ fn find_projects(path: &PathBuf, matched: &str) -> Vec<PathBuf> {
     }
 
     // println!("non project {}", entry.file_name().into_string().unwrap());
-    println!("lookup path {}", path.display().to_string());
     for entry in fs::read_dir(path).unwrap() {
         let entry = &entry.unwrap();
         let path = entry.path();
