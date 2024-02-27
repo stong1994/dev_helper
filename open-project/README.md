@@ -9,3 +9,6 @@ open your project quickly!!!
     ```
 2. `sudo make Makefile install`
 3. `op {keyword of project}`
+
+## quit
+input 'q' and 'Enter'

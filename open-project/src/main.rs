@@ -1,7 +1,7 @@
 use std::{
     env, fs,
     io::{self, Write},
-    path::PathBuf,
+    path::PathBuf, process::exit,
 };
 
 fn main() {
@@ -17,12 +17,15 @@ fn main() {
             .read_line(&mut project)
             .expect("Failed to read line");
     }
+    let project = project.trim();
+    if is_exit(project) {
+        exit(0);
+    }
 
     let mut matched_projects = Vec::new();
-    let matched: &str = project.trim().as_ref();
     for path in roots {
         // 遍历目录
-        matched_projects.extend_from_slice(&find_projects(&PathBuf::from(path), matched));
+        matched_projects.extend_from_slice(&find_projects(&PathBuf::from(path), project));
     }
 
     if matched_projects.is_empty() {
@@ -47,8 +50,12 @@ fn main() {
     io::stdin()
         .read_line(&mut input)
         .expect("Failed to read line");
+    let input = input.trim();
+    if is_exit(input) {
+        exit(0);
+    }
+
     let choice = input
-        .trim()
         .parse::<usize>()
         .expect("Please enter a valid number");
 
@@ -174,4 +181,8 @@ fn unnecessary(path: &PathBuf) -> bool {
         .into_string()
         .unwrap();
     name == "pip" || name == "venv" || name == "build" || name.starts_with(".")
+}
+
+fn is_exit(input: &str) -> bool {
+    input == "q" 
 }
