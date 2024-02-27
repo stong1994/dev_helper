@@ -123,9 +123,17 @@ fn is_js(path: &PathBuf) -> bool {
     path.join("package.json").exists()
 }
 
+fn is_haskell(path: &PathBuf) -> bool {
+has_suffix(path, ".hs")
+}
+
 fn is_sh(path: &PathBuf) -> bool {
+    has_suffix(path, ".sh")
+}
+
+fn has_suffix(path: &PathBuf, suffix: &str) ->bool {
     for entry in fs::read_dir(path).unwrap() {
-        if entry.unwrap().path().to_str().unwrap().ends_with(".sh") {
+        if entry.unwrap().path().to_str().unwrap().ends_with(suffix) {
             return true;
         }
     }
@@ -133,7 +141,7 @@ fn is_sh(path: &PathBuf) -> bool {
 }
 
 fn is_project(path: &PathBuf) -> bool {
-    is_py(path) || is_rust(path) || is_go(path) || is_flutter(path) || is_js(path) || is_sh(path)
+    is_py(path) || is_rust(path) || is_go(path) || is_flutter(path) || is_js(path) || is_sh(path) || is_haskell(path)
 }
 
 fn start_vscode(path: &PathBuf) {
@@ -151,7 +159,7 @@ fn open_pro(path: &PathBuf) {
         start_goland(path);
         return;
     }
-    if is_py(path) || is_rust(path) || is_flutter(path) || is_js(path) || is_sh(path) {
+    if is_py(path) || is_rust(path) || is_flutter(path) || is_js(path) || is_sh(path) || is_haskell(path) {
         start_vscode(path);
         return;
     }
