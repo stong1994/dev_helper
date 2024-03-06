@@ -72,6 +72,7 @@ func main() {
 			content, err = genPermCodeModule(swagger)
 		}
 		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(err.Error()))
 			return
 		}
@@ -79,6 +80,7 @@ func main() {
 		data := map[string]string{"fileName": fileName, "content": content}
 		resp, err := json.Marshal(data)
 		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(err.Error()))
 			return
 		}
@@ -125,6 +127,10 @@ func genParams(swagger *openapi3.T) (string, error) {
 			}
 		}
 		if v.Post != nil {
+			if v.Post.RequestBody == nil {
+				fmt.Println("body is empty for " + v.Post.Summary)
+				continue
+			}
 			for _, c := range v.Post.RequestBody.Value.Content {
 				for _, p := range c.Schema.Value.Properties {
 					p.Value.Extensions["x-go-type-skip-optional-pointer"] = true
@@ -140,7 +146,7 @@ func genParams(swagger *openapi3.T) (string, error) {
 		},
 	})
 	if err != nil {
-		return "", fmt.Errorf("error generating code: %w", err)
+		return "", fmt.Errorf("error generating code for %s: %w", swagger.Info.Title, err)
 	}
 
 	code += `
@@ -215,7 +221,6 @@ type AdapterModuleGen struct {
 	API             []AdapterModuleAPI
 	ModuleName      string
 	ProjectName     string
-	BpProjectName   string
 	ModuleNameSnake string
 }
 
@@ -342,7 +347,7 @@ func genServiceModule(swagger *openapi3.T, projectName, visitProjectName string)
 		ModuleName:      getModuleName(firstPath),
 		ProjectName:     projectName,
 		ModuleNameSnake: getModuleNameSnake(firstPath),
-		BpProjectName:   visitProjectName,
+		BpProjectName:   convertToCamelCase(visitProjectName),
 		Pagenation:      "dto.PagenationResponse",
 	}
 
@@ -392,7 +397,6 @@ func genAdapterModule(swagger *openapi3.T, projectName, visitProjectName string)
 		ModuleName:      getModuleName(firstPath),
 		ProjectName:     projectName,
 		ModuleNameSnake: getModuleNameSnake(firstPath),
-		BpProjectName:   visitProjectName,
 	}
 
 	for _, url := range swagger.Paths.InMatchingOrder() {

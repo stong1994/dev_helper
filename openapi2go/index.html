@@ -55,11 +55,17 @@
                         body: JSON.stringify(requestBody),
                     });
                     if (response.ok) {
-                        const data = await response.json();
-                        this.generateContent = data.content;
-                        this.fileName = data.fileName;
+                        // try {
+                            const data = await response.json();
+                            this.generateContent = data.content;
+                            this.fileName = data.fileName;
+                        // }catch (error) {
+                        //     console.error(error);
+                        //     this.generateContent = `Generated content failed: ${error}`;
+                        // }
                     } else {
-                        throw new Error('API request failed');
+                        this.generateContent = await response.text();
+                        // throw new Error('API request failed');
                     }
                 } catch (error) {
                     console.error(error);
